@@ -1,0 +1,7 @@
+Metadata-Version: 2.1
+Name: automatic_scientific_quality_metrics
+Version: 0.1.0
+Summary: Code for the paper: Automatic Evaluation Metrics for Artificially Generated Scientific Research
+Author: Niklas Hoepner
+Author-email: n.r.hopner@uva.nl
+Requires-Python: >=3.11

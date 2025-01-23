@@ -1,0 +1,11 @@
+---
+device: "cuda:0"
+dataset: "iclr"
+evaluation_algorithm: "direct_prediction"
+
+logging:
+  project: automatic_scientific_qm
+  name: "section_classifier"
+  mode: disabled
+  tags: []
+

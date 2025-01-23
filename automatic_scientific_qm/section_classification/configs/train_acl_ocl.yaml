@@ -1,0 +1,19 @@
+---
+device: "cuda:0"
+model_directory: "../../model_store/"
+seed: 42
+
+data:
+  batch_size: 128
+  compute_embeddings: True
+  max_n_sentences_per_example: 200
+  num_workers: 2
+  output_directory: "../data/processed_data/"
+
+    
+logging:
+  project: automatic_scientific_qm
+  name: "section_classifier"
+  mode: disabled
+  tags: []
+
