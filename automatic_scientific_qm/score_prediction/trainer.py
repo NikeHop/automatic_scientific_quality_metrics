@@ -50,7 +50,7 @@ class ScorePrediction(pl.LightningModule):
         return torch.optim.Adam(self.parameters(), lr=self.lr)
 
     def transform_data(
-        self, data: dict
+        self, data: dict[str, torch.Tensor]
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """
         Transforms the input data into tensors for model training.
@@ -68,7 +68,6 @@ class ScorePrediction(pl.LightningModule):
                 - masks (torch.Tensor): Tensor of masks indicating the valid positions in the input representations.
                 - scores (torch.Tensor): Tensor of target scores.
         """
-        input_representations = []
         input_lengths = []
 
         if self.context_type == "no_context":
@@ -84,7 +83,6 @@ class ScorePrediction(pl.LightningModule):
                 input_representation = torch.cat(
                     [paper_emb.unsqueeze(0), context_emb], dim=0
                 )
-                input_representations.append(input_representation)
                 input_lengths.append(input_representation.shape[0])
 
             input_representations = pad_sequence(

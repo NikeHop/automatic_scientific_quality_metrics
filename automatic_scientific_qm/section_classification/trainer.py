@@ -6,7 +6,9 @@ import pytorch_lightning as pl
 import torch
 import torch.nn as nn
 
+from adapters import AutoAdapterModel
 from torch.optim import Adam
+from transformers import AutoTokenizer
 
 from automatic_scientific_qm.section_classification.model import (
     SectionClassifierTransformer,
@@ -16,7 +18,6 @@ from automatic_scientific_qm.section_classification.model import (
 class SectionClassifier(pl.LightningModule):
     def __init__(self, config: dict) -> None:
         super().__init__()
-        self.model_type = config["model_type"]
         self.num_classes = config["model"]["num_classes"]
         self.model = SectionClassifierTransformer(config["model"])
         self.lr = config["lr"]
@@ -59,6 +60,16 @@ class SectionClassifier(pl.LightningModule):
     def predict(self, data: dict) -> torch.Tensor:
         predicted_labels = self.model(data)
         return predicted_labels
+
+    def load_preprocessing_utils(self, device: str) -> None:
+        self.tokenizer = AutoTokenizer.from_pretrained("allenai/specter2_base")
+        self.embedding_model = AutoAdapterModel.from_pretrained(
+            "allenai/specter2_base"
+        ).to(device)
+        self.embedding_model.load_adapter(
+            "allenai/specter2", source="hf", load_as="classification", set_active=True
+        )
+        self.embedding_model = self.embedding_model.to(device)
 
     def configure_optimizers(self) -> torch.optim.Optimizer:
         return Adam(self.model.parameters(), lr=self.lr)

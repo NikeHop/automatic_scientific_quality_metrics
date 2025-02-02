@@ -1,6 +1,7 @@
 """
 Run the score models on the subset of OpenReview data selected for the LLM reviewing task
 """
+
 import argparse
 import json
 import os
@@ -139,7 +140,6 @@ def run_direct_prediction(samples: list, config: dict) -> None:
 
 
 if __name__ == "__main__":
-
     argparser = argparse.ArgumentParser()
     argparser.add_argument("--config", type=str, required=True)
     args = argparser.parse_args()

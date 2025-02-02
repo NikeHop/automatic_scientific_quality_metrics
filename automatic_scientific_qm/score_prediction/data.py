@@ -1,6 +1,7 @@
 """
 Data loading and processing utilities.
 """
+
 import os
 
 import numpy as np
@@ -14,7 +15,9 @@ from transformers import AutoTokenizer
 
 
 class ScorePredictionDataset(Dataset):
-    def __init__(self, dataset:HF_Dataset, score_type:str, paper_representation:str) -> None:
+    def __init__(
+        self, dataset: HF_Dataset, score_type: str, paper_representation: str
+    ) -> None:
         self.dataset = dataset
         self.score_type = score_type
         self.paper_representation = paper_representation
@@ -22,7 +25,7 @@ class ScorePredictionDataset(Dataset):
     def __len__(self):
         return len(self.dataset)
 
-    def __getitem__(self, idx:int) -> tuple:
+    def __getitem__(self, idx: int) -> tuple:
         sample = self.dataset[idx]
 
         paper_representation = sample[self.paper_representation]
@@ -39,7 +42,7 @@ class ScorePredictionDataset(Dataset):
             full_paper,
         )
 
-    def get_full_paper(self, sample:dict) -> np.ndarray:
+    def get_full_paper(self, sample: dict) -> np.ndarray:
         full_paper = np.stack(
             [
                 sample["intro_emb"],
@@ -54,7 +57,7 @@ class ScorePredictionDataset(Dataset):
         return full_paper
 
 
-def collate(batch:list) -> dict:
+def collate(batch: list) -> dict:
     scores = []
     paper_representations = []
     references = []
@@ -210,10 +213,11 @@ def get_data(config: dict) -> tuple[DataLoader, DataLoader, DataLoader]:
         dataset = load_from_disk(dataset_directory)
 
     # Apply filters
+    paper_representation = f"{config['data']['paper_representation']}_emb"
     dataset = dataset.filter(lambda x: x[config["data"]["score_type"]] is not None)
     dataset = dataset.filter(
-        lambda x: x[config["data"]["paper_representation"]] is not None
-        and not all([elem == 0 for elem in x[config["data"]["paper_representation"]]])
+        lambda x: x[paper_representation] is not None
+        and not all([elem == 0 for elem in x[paper_representation]])
     )
 
     if config["data"]["context_type"] == "references":
@@ -225,7 +229,7 @@ def get_data(config: dict) -> tuple[DataLoader, DataLoader, DataLoader]:
     train_dataset = ScorePredictionDataset(
         dataset["train"],
         config["data"]["score_type"],
-        config["data"]["paper_representation"],
+        paper_representation,
     )
 
     train_dataloader = DataLoader(

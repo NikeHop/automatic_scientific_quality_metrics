@@ -4,6 +4,21 @@
 
 ## Dependencies
 
+Requirements:
+* anaconda 
+* tmux
+
+Create a new conda environment with the necessary requirements:
+
+```
+conda create --name scientific_qm python=3.11
+conda activate scientific_qm
+pip install -r requirements.txt
+```
+
+All following commands require to be run in the scientific_qm environment. 
+
+
 
 ## Datasets
 
@@ -13,7 +28,15 @@ The datasets used in this project can be found on Huggingface:
 
 * [Scholarly Document Quality Prediction (SDQP)](https://huggingface.co/datasets/nhop/scientific-quality-score-prediction)
 
-To obtain the full OpenReview dataset with all parsed and section annotated pdfs run from the `./datasets` directory the script:
+To obtain the full OpenReview dataset with all parsed and section annotated pdfs 
+first get [GROBID](https://github.com/kermitt2/grobid) by running:
+
+```
+bash setup_grobid.sh
+```
+
+
+and then run from the `./data_processing` directory the script:
 
 ```
 bash complete_openreview_dataset.sh
@@ -60,7 +83,8 @@ For the score prediction models on the OpenReview dataset use/modify the `openre
 |data/context_type| no_context, <br> references, <br> full_paper|
 
 
-If the code is run for the first time the text will be embedded using [SPECTER2](https://huggingface.co/allenai/specter2), which takes ~2hr. 
+If the code is run for the first time for each dataset the text of the datasets will be embedded using [SPECTER2](https://huggingface.co/allenai/specter2), which takes ~3hr. 
+
 ## Run LLM Reviewers  
 
 **Note 1:** 
@@ -78,7 +102,11 @@ We run the following two LLM-reviewers on a subset of ICLR-2024 and NeurIPS-2024
 (2) Paiwise Comparison Reviewer.
 
 
-## Citation
-
-
 ## Acknowledgements
+
+The code makes use of the following GitHubs:
+
+* 
+* 
+* 
+* 

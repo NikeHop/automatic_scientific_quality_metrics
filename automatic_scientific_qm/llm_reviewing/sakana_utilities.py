@@ -1,6 +1,7 @@
 """
 Utilities needed to run Sakana reviewer.
 """
+
 import backoff
 import openai
 import json
@@ -47,7 +48,10 @@ def get_batch_responses_from_llm(
         new_msg_history = msg_history + [{"role": "user", "content": msg}]
         response = client.chat.completions.create(
             model=model,
-            messages=[{"role": "system", "content": system_message}, *new_msg_history,],
+            messages=[
+                {"role": "system", "content": system_message},
+                *new_msg_history,
+            ],
             temperature=temperature,
             max_tokens=3000,
             n=n_responses,
@@ -62,7 +66,10 @@ def get_batch_responses_from_llm(
         new_msg_history = msg_history + [{"role": "user", "content": msg}]
         response = client.chat.completions.create(
             model="deepseek-coder",
-            messages=[{"role": "system", "content": system_message}, *new_msg_history,],
+            messages=[
+                {"role": "system", "content": system_message},
+                *new_msg_history,
+            ],
             temperature=temperature,
             max_tokens=3000,
             n=n_responses,
@@ -76,7 +83,10 @@ def get_batch_responses_from_llm(
         new_msg_history = msg_history + [{"role": "user", "content": msg}]
         response = client.chat.completions.create(
             model="meta-llama/llama-3.1-405b-instruct",
-            messages=[{"role": "system", "content": system_message}, *new_msg_history,],
+            messages=[
+                {"role": "system", "content": system_message},
+                *new_msg_history,
+            ],
             temperature=temperature,
             max_tokens=3000,
             n=n_responses,
@@ -132,7 +142,15 @@ def get_response_from_llm(
 
     if "claude" in model:
         new_msg_history = msg_history + [
-            {"role": "user", "content": [{"type": "text", "text": msg,}],}
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": msg,
+                    }
+                ],
+            }
         ]
         response = client.messages.create(
             model=model,
@@ -143,7 +161,15 @@ def get_response_from_llm(
         )
         content = response.content[0].text
         new_msg_history = new_msg_history + [
-            {"role": "assistant", "content": [{"type": "text", "text": content,}],}
+            {
+                "role": "assistant",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": content,
+                    }
+                ],
+            }
         ]
     elif model in [
         "gpt-4o-2024-05-13",
@@ -153,7 +179,10 @@ def get_response_from_llm(
         new_msg_history = msg_history + [{"role": "user", "content": msg}]
         response = client.chat.completions.create(
             model=model,
-            messages=[{"role": "system", "content": system_message}, *new_msg_history,],
+            messages=[
+                {"role": "system", "content": system_message},
+                *new_msg_history,
+            ],
             temperature=temperature,
             max_tokens=3000,
             n=1,
@@ -166,7 +195,10 @@ def get_response_from_llm(
         new_msg_history = msg_history + [{"role": "user", "content": msg}]
         response = client.chat.completions.create(
             model="deepseek-coder",
-            messages=[{"role": "system", "content": system_message}, *new_msg_history,],
+            messages=[
+                {"role": "system", "content": system_message},
+                *new_msg_history,
+            ],
             temperature=temperature,
             max_tokens=3000,
             n=1,
@@ -178,7 +210,10 @@ def get_response_from_llm(
         new_msg_history = msg_history + [{"role": "user", "content": msg}]
         response = client.chat.completions.create(
             model="meta-llama/llama-3.1-405b-instruct",
-            messages=[{"role": "system", "content": system_message}, *new_msg_history,],
+            messages=[
+                {"role": "system", "content": system_message},
+                *new_msg_history,
+            ],
             temperature=temperature,
             max_tokens=3000,
             n=1,

@@ -7,5 +7,5 @@ setup(
     author_email="n.r.hopner@uva.nl",
     description="Code for the paper: Automatic Evaluation Metrics for Artificially Generated Scientific Research",
     python_requires=">=3.11",  # Specify minimum Python version
-    packages=["automatic_scientific_qm"], 
+    packages=["automatic_scientific_qm"],
 )

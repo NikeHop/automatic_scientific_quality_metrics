@@ -1,6 +1,7 @@
 """
 Utilities to run a swiss torunament
 """
+
 import json
 import os
 import random
@@ -266,7 +267,6 @@ def single_round(
     n_comparisons = 0
     correct_comparisons = 0
     for paper1, paper2 in tqdm(match_pairs):
-
         if config["model_type"] == "llm":
             _, result, cost = better_idea_llm(
                 paper1, paper2, client, model, seed, conference
@@ -334,7 +334,9 @@ def tournament_ranking(
     if config["model_type"] == "llm":
         if config["llm_provider"] == "anthropic":
             key = os.environ["ANTHROPIC_API_KEY"]
-            client = Anthropic(api_key=key,)
+            client = Anthropic(
+                api_key=key,
+            )
         elif config["llm_provider"] == "openai":
             key = os.environ["OPENAI_API_KEY"]
             client = OpenAI(api_key=key)

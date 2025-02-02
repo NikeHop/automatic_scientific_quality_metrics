@@ -50,11 +50,15 @@ def train(config: dict) -> None:
         if config["trainer"]["load"]["load"]:
             if config["data"]["pairwise_comparison"]:
                 model = PairwiseComparison.load_from_checkpoint(
-                    os.path.join(config["trainer"]["load"]["checkpoint"],)
+                    os.path.join(
+                        config["trainer"]["load"]["checkpoint"],
+                    )
                 )
             else:
                 model = ScorePrediction.load_from_checkpoint(
-                    os.path.join(config["trainer"]["load"]["checkpoint"],)
+                    os.path.join(
+                        config["trainer"]["load"]["checkpoint"],
+                    )
                 )
         else:
             if config["data"]["pairwise_comparison"]:
@@ -173,7 +177,6 @@ def update_config_cli(args: argparse.Namespace, config: dict) -> dict:
 
 
 if __name__ == "__main__":
-
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=str, help="Path to the config file")
     parser.add_argument(

@@ -154,7 +154,6 @@ class Paper(BaseModel):
             return
 
         for part in self.parsed_pdf["pdf_parse"]["body_text"]:
-
             # Update conclusion passed
             if not conclusion_passed and len(self.structured_content) > 0:
                 sec_names = [sec.name for sec in self.structured_content.values()]

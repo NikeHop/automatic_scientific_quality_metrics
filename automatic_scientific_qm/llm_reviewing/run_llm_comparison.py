@@ -1,5 +1,5 @@
 """
-Code to run a swiss tournament between OpenReview papers using LLM as the underlying comparison model 
+Code to run a swiss tournament between OpenReview papers using LLM as the underlying comparison model
 """
 
 import argparse

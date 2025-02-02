@@ -39,7 +39,6 @@ def collate_section_classifier(batch):
 
 
 def get_data(config):
-
     if config["data"]["compute_embeddings"]:
         dataset = load_dataset("nhop/academic-section-classification")
 
@@ -75,7 +74,6 @@ def get_data(config):
         dataset = load_from_disk(config["data"]["output_directory"])
 
     # Create dataloaders
-
     train_dataset = SectionClassifierDataset(dataset["train"])
     train_dataloader = DataLoader(
         dataset=train_dataset,

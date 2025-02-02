@@ -264,7 +264,7 @@ def get_review_fewshot_examples(num_fs_examples=1, iclr=False) -> str:
 
     Args:
         num_fs_examples (int): Number of few-shot examples to include in the prompt. Default is 1.
-        iclr (bool): If True, uses few-shot papers and reviews from ICLR conference. 
+        iclr (bool): If True, uses few-shot papers and reviews from ICLR conference.
                      If False, uses few-shot papers and reviews from NeurIPS conference. Default is False.
 
     Returns:

@@ -97,7 +97,6 @@ def train_section_classifier(config: dict) -> None:
 
 
 if __name__ == "__main__":
-
     parser = argparse.ArgumentParser(
         description="Train a section classifier for academic papers"
     )
