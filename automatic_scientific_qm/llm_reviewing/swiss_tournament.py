@@ -2,7 +2,7 @@
 Utilities to run a swiss torunament
 """
 import json
-import os 
+import os
 import random
 
 import numpy as np
@@ -217,7 +217,7 @@ def better_idea_rsp(
 def single_round(
     papers: list[Paper],
     scores: dict,
-    client: Union[Anthropic, OpenAI,None],
+    client: Union[Anthropic, OpenAI, None],
     model: Union[PairwiseComparison, str],
     seed: int,
     conference: str,
@@ -244,7 +244,7 @@ def single_round(
     Returns:
         tuple[float, int, int]: A tuple containing the total cost, number of comparisons, and number of correct comparisons.
     """
-    
+
     # Shuffle ideas in the first round
     if current_round == 0:
         random.shuffle(papers)
@@ -310,7 +310,7 @@ def tournament_ranking(
     paperhash2sample: dict,
     max_round: int,
     config: dict,
-):
+) -> None:
     """
     Runs a Swiss tournament ranking for a given set of papers.
 
@@ -329,21 +329,19 @@ def tournament_ranking(
     Raises:
         None
     """
-    
+
     # Load client
     if config["model_type"] == "llm":
         if config["llm_provider"] == "anthropic":
             key = os.environ["ANTHROPIC_API_KEY"]
-            client = Anthropic(
-                api_key=key,
-            )
+            client = Anthropic(api_key=key,)
         elif config["llm_provider"] == "openai":
             key = os.environ["OPENAI_API_KEY"]
             client = OpenAI(api_key=key)
         else:
             raise NotImplementedError("Only claude and openai are supported")
     else:
-        client = None 
+        client = None
 
     total_comparisons = 0
     total_correct_comparisons = 0
@@ -415,4 +413,5 @@ def tournament_ranking(
     )
     wandb.log({"spearman_correlation": df.corr(method="spearman").iloc[0, 1]})
 
-    return all_costs
+    # Comparison Accuracy
+    wandb.log({"comparison_accuracy": total_correct_comparisons / total_comparisons})

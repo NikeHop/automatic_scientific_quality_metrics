@@ -51,18 +51,6 @@ def run_llm_ranking(config: dict) -> None:
             paper = json.load(file)
             paper = Paper(**paper)
             papers.append(paper)
- 
-    # Load client
-    if config["llm_provider"] == "anthropic":
-        key = os.environ["ANTHROPIC_API_KEY"]
-        client = Anthropic(
-            api_key=key,
-        )
-    elif config["llm_provider"] == "openai":
-        key = os.environ["OPENAI_API_KEY"]
-        client = OpenAI(api_key=key)
-    else:
-        raise NotImplementedError("Only claude and openai are supported")
 
     tournament_ranking(
         papers,

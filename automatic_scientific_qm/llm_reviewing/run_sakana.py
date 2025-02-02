@@ -3,62 +3,103 @@ Run the SAKANA reviewer for a subsample of the NEURIPS and ICLR 2024 papers
 """
 
 import argparse
-import datetime
 import logging
-import json 
-import random 
-import os 
-import sys
-import tqdm 
+import json
+import os
+
+import tqdm
 import yaml
 
+from typing import Union
 
-import openai 
+import numpy as np
+import json
+import openai
 
-from research_assistant.data import Paper 
-from research_assistant.sakana_reviewer.review import (
-    perform_review,
+from automatic_scientific_qm.utils.data import Paper
+
+from automatic_scientific_qm.llm_reviewing.sakana_utilities import (
+    get_batch_responses_from_llm,
+    get_response_from_llm,
+    extract_json_between_markers,
 )
-from research_assistant.sakana_reviewer.constants import NEURIPS_FORM, ICLR_FORM
+from automatic_scientific_qm.llm_reviewing.prompts import (
+    NEURIPS_FORM,
+    ICLR_FORM,
+    FEW_SHOT_PAPERS_ICLR,
+    FEW_SHOT_REVIEWS_ICLR,
+    FEW_SHOT_PAPERS_NEURIPS,
+    FEW_SHOT_REVIEWS_NEURIPS,
+    NEURIPS_FORM,
+    REVIEWER_SYSTEM_PROMPT_BASE,
+    META_REVIEWER_SYSTEM_PROMPT,
+    REVIEWER_REFLECTION_PROMPT,
+)
+
+"""
+Part of the Code in this file is adapted from the AI-Scientist project by SakanaAI (https://github.com/SakanaAI/AI-Scientist), licensed under the Apache License, Version 2.0.
+
+Copyright 2024 SakanaAI
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+"""
 
 
+def run_evaluation(config: dict) -> None:
+    """
+    Run the evaluation process based on the given configuration.
 
-def run_evaluation(config):
-    
-    if config["dataset"]=="iclr":
+    Args:
+        config (dict): A dictionary containing the configuration parameters for the evaluation.
+
+    Raises:
+        ValueError: If the dataset specified in the configuration is not recognized.
+
+    Returns:
+        None
+    """
+
+    if config["dataset"] == "iclr":
         form = ICLR_FORM
-    elif config["dataset"]=="neurips":
+    elif config["dataset"] == "neurips":
         form = NEURIPS_FORM
     else:
         raise ValueError(f"Dataset {config['dataset']} not recognized")
 
     client = openai.Client()
-    
-    with open(config["venue_file"],"r") as f:
+
+    with open(config["venue_file"], "r") as f:
         paperhashes = json.load(f)
-    
+
+    # If part of the dataset has already been reviewed, load the existing reviews
     if os.path.exists(config["output_file"]):
-        with open(config["output_file"],"r") as f:
+        with open(config["output_file"], "r") as f:
             paperhash2review = json.load(f)
     else:
         paperhash2review = {}
-        
-    for paperhash in tqdm.tqdm(paperhashes):
 
+    for paperhash in tqdm.tqdm(paperhashes):
         if paperhash in paperhash2review:
             continue
-
-        print(f"Reviewing paper {paperhash}")
         try:
-            paperpath = os.path.join(config["data_dir"],f"{paperhash}.json")
+            paperpath = os.path.join(config["data_dir"], f"{paperhash}.json")
             with open(paperpath) as f:
                 paper = json.load(f)
                 paper = Paper(**paper)
         except Exception as e:
-            print(f"Error loading paper {paperhash}")
-            print(e)
+            logging.info(f"Error loading paper {paperhash}: {e}")
             continue
-        
+
         text = paper.get_text(False)
 
         review = perform_review(
@@ -69,91 +110,50 @@ def run_evaluation(config):
             config["num_fs_examples"],
             config["num_reviews_ensemble"],
             config["temperature"],
-            review_instruction_form=form
+            review_instruction_form=form,
         )
 
         paperhash2review[paperhash] = review
-        print(paperhash2review)
-        with open(config["output_file"],"w") as f:
-            json.dump(paperhash2review,f,indent=4)
 
-"""
-Run the Sakana Reviewer over ICLR 2024 and NeurIPS 2024 test set 
-"""
+        with open(config["output_file"], "w") as f:
+            json.dump(paperhash2review, f, indent=4)
 
-import numpy as np 
-import json 
-import openai 
-
-from research_assistant.hypothesis_generation.sakana.ai_scientist.llm import (
-    get_batch_responses_from_llm,
-    get_response_from_llm,
-    extract_json_between_markers,
-)
-
-
-from research_assistant.sakana_reviewer.constants import (
-    FEW_SHOT_PAPERS_ICLR,
-    FEW_SHOT_REVIEWS_ICLR,
-    FEW_SHOT_PAPERS_NEURIPS,
-    FEW_SHOT_REVIEWS_NEURIPS,
-    NEURIPS_FORM,
-    REVIEWER_SYSTEM_PROMPT_BASE,
-    META_REVIEWER_SYSTEM_PROMPT,
-    REVIEWER_REFLECTION_PROMPT
-)
-
-
-def get_review_fewshot_examples(num_fs_examples=1,iclr=False):
-    fewshot_prompt = """
-    Below are some sample reviews, copied from previous machine learning conferences.
-    Note that while each review is formatted differently according to each reviewer's style, the reviews are well-structured and therefore easy to navigate.
-    """
-
-    if iclr:
-        few_shot_papers = FEW_SHOT_PAPERS_ICLR
-        few_shot_reviews = FEW_SHOT_REVIEWS_ICLR
-    else:
-        few_shot_papers = FEW_SHOT_PAPERS_NEURIPS
-        few_shot_reviews = FEW_SHOT_REVIEWS_NEURIPS
-    
-
-    for paper_text, review_text in zip(
-        few_shot_papers[:num_fs_examples], few_shot_reviews[:num_fs_examples]
-    ):
-        fewshot_prompt += f"""
-        Paper:
-
-        ```
-        {paper_text}
-        ```
-
-        Review:
-
-        ```
-        {review_text}
-        ```
-
-        """
-
-    return fewshot_prompt
 
 def perform_review(
-    text,
-    model,
-    client,
-    num_reflections=1,
-    num_fs_examples=2,
-    num_reviews_ensemble=1,
-    temperature=0.75,
-    msg_history=None,
-    return_msg_history=False,
-    reviewer_system_prompt=REVIEWER_SYSTEM_PROMPT_BASE,
-    review_instruction_form=NEURIPS_FORM,
-):
-    
+    text: str,
+    model: str,
+    client: openai.Client,
+    num_reflections: int = 1,
+    num_fs_examples: int = 2,
+    num_reviews_ensemble: int = 1,
+    temperature: float = 0.75,
+    msg_history: Union[list, None] = None,
+    return_msg_history: bool = False,
+    reviewer_system_prompt: str = REVIEWER_SYSTEM_PROMPT_BASE,
+    review_instruction_form: str = NEURIPS_FORM,
+) -> Union[dict, tuple[dict, list]]:
+    """
+    Perform a review of a given text using the LLM model.
+
+    Args:
+        text (str): The text to be reviewed.
+        model (str): The LLM model to use for the review.
+        client (openai.Client): The OpenAI client for making API requests.
+        num_reflections (int, optional): The number of reviewer reflections to perform. Defaults to 1.
+        num_fs_examples (int, optional): The number of few-shot examples to include in the review. Defaults to 2.
+        num_reviews_ensemble (int, optional): The number of reviews to generate and aggregate. Defaults to 1.
+        temperature (float, optional): The temperature parameter for controlling the randomness of the model's output. Defaults to 0.75.
+        msg_history (list or None, optional): The message history for the conversation with the model. Defaults to None.
+        return_msg_history (bool, optional): Whether to return the message history along with the review. Defaults to False.
+        reviewer_system_prompt (str, optional): The system prompt for the reviewer. Defaults to REVIEWER_SYSTEM_PROMPT_BASE.
+        review_instruction_form (str, optional): The form for providing review instructions. Defaults to NEURIPS_FORM.
+
+    Returns:
+        Union[dict, tuple[dict, list]]: The generated review as a dictionary or a tuple containing the review and the message history.
+    """
+
     if num_fs_examples > 0:
-        fs_prompt = get_review_fewshot_examples(num_fs_examples,iclr=True)
+        fs_prompt = get_review_fewshot_examples(num_fs_examples, iclr=True)
         base_prompt = review_instruction_form + fs_prompt
     else:
         base_prompt = review_instruction_form
@@ -164,7 +164,6 @@ def perform_review(
     {text}
     ```"""
 
-
     if num_reviews_ensemble > 1:
         llm_review, msg_histories = get_batch_responses_from_llm(
             base_prompt,
@@ -173,7 +172,6 @@ def perform_review(
             system_message=reviewer_system_prompt,
             print_debug=False,
             msg_history=msg_history,
-            # Higher temperature to encourage diversity.
             temperature=0.75,
             n_responses=num_reviews_ensemble,
         )
@@ -184,7 +182,9 @@ def perform_review(
             except Exception as e:
                 print(f"Ensemble review {idx} failed: {e}")
         parsed_reviews = [r for r in parsed_reviews if r is not None]
-        review = get_meta_review(model, client, temperature, parsed_reviews, review_instruction_form)
+        review = get_meta_review(
+            model, client, temperature, parsed_reviews, review_instruction_form
+        )
 
         # take first valid in case meta-reviewer fails
         if review is None:
@@ -222,8 +222,8 @@ def perform_review(
                             {json.dumps(review)}
                             ```
                             """,
-                }
-            ]
+            }
+        ]
     else:
         llm_review, msg_history = get_response_from_llm(
             base_prompt,
@@ -238,7 +238,6 @@ def perform_review(
 
     if num_reflections > 1:
         for j in range(num_reflections - 1):
-            # print(f"Relection: {j + 2}/{num_reflections}")
             text, msg_history = get_response_from_llm(
                 REVIEWER_REFLECTION_PROMPT,
                 client=client,
@@ -251,18 +250,80 @@ def perform_review(
             assert review is not None, "Failed to extract JSON from LLM output"
 
             if "I am done" in text:
-                # print(f"Review generation converged after {j + 2} iterations.")
                 break
 
     if return_msg_history:
         return review, msg_history
     else:
         return review
- 
 
 
-def get_meta_review(model, client, temperature, reviews,review_form):
-    # Write a meta-review from a set of individual reviews
+def get_review_fewshot_examples(num_fs_examples=1, iclr=False) -> str:
+    """
+    Generates a few-shot prompt with sample reviews from previous machine learning conferences.
+
+    Args:
+        num_fs_examples (int): Number of few-shot examples to include in the prompt. Default is 1.
+        iclr (bool): If True, uses few-shot papers and reviews from ICLR conference. 
+                     If False, uses few-shot papers and reviews from NeurIPS conference. Default is False.
+
+    Returns:
+        str: Few-shot prompt with sample reviews.
+
+    """
+    fewshot_prompt = """
+    Below are some sample reviews, copied from previous machine learning conferences.
+    Note that while each review is formatted differently according to each reviewer's style, the reviews are well-structured and therefore easy to navigate.
+    """
+
+    if iclr:
+        few_shot_papers = FEW_SHOT_PAPERS_ICLR
+        few_shot_reviews = FEW_SHOT_REVIEWS_ICLR
+    else:
+        few_shot_papers = FEW_SHOT_PAPERS_NEURIPS
+        few_shot_reviews = FEW_SHOT_REVIEWS_NEURIPS
+
+    for paper_text, review_text in zip(
+        few_shot_papers[:num_fs_examples], few_shot_reviews[:num_fs_examples]
+    ):
+        fewshot_prompt += f"""
+        Paper:
+
+        ```
+        {paper_text}
+        ```
+
+        Review:
+
+        ```
+        {review_text}
+        ```
+
+        """
+
+    return fewshot_prompt
+
+
+def get_meta_review(
+    model: str,
+    client: openai.Client,
+    temperature: float,
+    reviews: list,
+    review_form: str,
+) -> dict:
+    """
+    Generate a meta-review from a set of individual reviews.
+
+    Args:
+        model (str): The model to use for generating the meta-review.
+        client (openai.Client): The client to use for generating the meta-review.
+        temperature (float): The temperature parameter for controlling the randomness of the generated text.
+        reviews (list): A list of individual reviews.
+        review_form (str): The review form to use as the base prompt for generating the meta-review.
+
+    Returns:
+        dict: The generated meta-review.
+    """
     review_text = ""
     for i, r in enumerate(reviews):
         review_text += f"""
@@ -273,7 +334,7 @@ def get_meta_review(model, client, temperature, reviews,review_form):
         """
     base_prompt = review_form + review_text
 
-    llm_review, msg_history = get_response_from_llm(
+    llm_review, _ = get_response_from_llm(
         base_prompt,
         model=model,
         client=client,
@@ -284,3 +345,27 @@ def get_meta_review(model, client, temperature, reviews,review_form):
     )
     meta_review = extract_json_between_markers(llm_review)
     return meta_review
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--config", type=str, required=True)
+    args = parser.parse_args()
+
+    with open(args.config, "r") as file:
+        config = yaml.safe_load(file)
+
+    # Create logger
+    logger = logging.getLogger(__name__)
+    logger.setLevel(logging.INFO)
+
+    # Log to console
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.INFO)
+    formatter = logging.Formatter(
+        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    )
+    console_handler.setFormatter(formatter)
+    logger.addHandler(console_handler)
+
+    run_evaluation(config)

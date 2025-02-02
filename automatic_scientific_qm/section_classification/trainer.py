@@ -23,32 +23,28 @@ class SectionClassifier(pl.LightningModule):
         self.loss = nn.CrossEntropyLoss()
         self.save_hyperparameters()
 
-    def training_step(
-        self, data:dict, data_idx: int
-    ) -> torch.Tensor:
+    def training_step(self, data: dict, data_idx: int) -> torch.Tensor:
         predicted_labels = self.model(data)
         loss = self.loss(predicted_labels, data["labels"])
         acc = (predicted_labels.argmax(dim=1) == data["labels"]).float().mean()
         self.log("training/accuracy", acc)
         return loss
 
-    def validation_step(
-        self, data:dict, data_idx: int
-    ) -> torch.Tensor:
+    def validation_step(self, data: dict, data_idx: int) -> torch.Tensor:
         predicted_labels = self.model(data)
         loss = self.loss(predicted_labels, data["labels"])
         self.compute_metrics(predicted_labels, data["labels"])
         return loss
 
-    def test_step(
-        self, data:dict, data_idx: int
-    ) -> torch.Tensor:
+    def test_step(self, data: dict, data_idx: int) -> torch.Tensor:
         predicted_labels = self.model(data)
         loss = self.loss(predicted_labels, data["labels"])
         self.compute_metrics(predicted_labels, data["labels"], "test")
         return loss
 
-    def compute_metrics(self, predicted_labels:torch.Tensor, labels:torch.Tensor, split="validation")->None:
+    def compute_metrics(
+        self, predicted_labels: torch.Tensor, labels: torch.Tensor, split="validation"
+    ) -> None:
         # Compute overall accuracy
         acc = (predicted_labels.argmax(dim=1) == labels).float().mean()
         self.log(f"{split}/accuracy", acc, batch_size=predicted_labels.shape[0])
@@ -60,7 +56,7 @@ class SectionClassifier(pl.LightningModule):
                 class_acc = (predicted_labels[mask].argmax(dim=1) == cl).float().mean()
                 self.log(f"{split}/accuracy_{cl}", class_acc, batch_size=mask.sum())
 
-    def predict(self, data:dict) -> torch.Tensor:
+    def predict(self, data: dict) -> torch.Tensor:
         predicted_labels = self.model(data)
         return predicted_labels
 

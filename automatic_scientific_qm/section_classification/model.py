@@ -22,7 +22,9 @@ class SectionClassifierTransformer(nn.Module):
         )
         self.label_predictor = nn.Linear(512, config["num_classes"])
 
-    def forward(self, data:dict) -> torch.Tensor:
+    def forward(self, data: dict) -> torch.Tensor:
         embeddings = self.projection(data["embeddings"])
-        transformed_embeddings = self.transformer(embeddings, src_key_padding_mask=data["mask"])
+        transformed_embeddings = self.transformer(
+            embeddings, src_key_padding_mask=data["mask"]
+        )
         return self.label_predictor(transformed_embeddings.mean(dim=1))
