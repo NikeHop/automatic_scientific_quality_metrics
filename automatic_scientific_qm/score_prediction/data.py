@@ -204,6 +204,11 @@ def get_data(config: dict) -> tuple[DataLoader, DataLoader, DataLoader]:
                 "result_experiment_emb": result_experiment_emb,
                 "background_emb": background_emb,
                 "conclusion_emb": conclusion_emb,
+                "avg_citations_per_month": torch.tensor(
+                    sample["avg_citations_per_month"]
+                ).log(),
+                "mean_score": torch.tensor(sample["mean_score"]).log(),
+                "mean_impact": torch.tensor(sample["mean_impact"]).log(),
             }
 
         dataset = dataset.map(compute_embeddings, batched=False)
