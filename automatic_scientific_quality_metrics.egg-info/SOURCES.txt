@@ -1,6 +1,0 @@
-README.md
-setup.py
-automatic_scientific_quality_metrics.egg-info/PKG-INFO
-automatic_scientific_quality_metrics.egg-info/SOURCES.txt
-automatic_scientific_quality_metrics.egg-info/dependency_links.txt
-automatic_scientific_quality_metrics.egg-info/top_level.txt

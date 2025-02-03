@@ -37,6 +37,7 @@ def complete_openreview_dataset(config: dict) -> None:
                 paperhash2structured_content[key] = StructuredContent.load_json(value)
     else:
         paperhash2structured_content = {}
+    new_samples = 0
 
     # Setup GROBID client for pdf parsing
     grobid_client = GrobidClient()
@@ -90,9 +91,9 @@ def complete_openreview_dataset(config: dict) -> None:
                         url = f"https://openreview.net/pdf?id={pdf_id}"
                         urlretrieve(url, pdf_filename)
 
-                except HTTPError as e:
+                except Exception as e:
                     logging.warning(
-                        f"Could not download the pdf for submission {sample['paperhash'] (pdf_id)}."
+                        f"Could not download the pdf for submission {sample['paperhash'] }."
                     )
                     logging.warning(e)
                     pdf_filename = None
@@ -116,12 +117,14 @@ def complete_openreview_dataset(config: dict) -> None:
                         structured_content = annotate(
                             structured_content, section_classifier, config
                         )
+                        new_samples += 1
                     except Exception as e:
                         logging.warning(
                             f"Could not parse the pdf for submission {sample['paperhash']}."
                         )
                         logging.warning(e)
                         structured_content = StructuredContent({})
+                        new_samples += 1
 
             # Add to paperhash2structured_content
             paperhash2structured_content[sample["paperhash"]] = structured_content
@@ -156,13 +159,20 @@ def complete_openreview_dataset(config: dict) -> None:
             sample["full_text"] = full_text
 
             # Every 500 samples, save the paperhash2structured_content
-            if len(paperhash2structured_content) % 1000 == 0:
+            if new_samples % 1000 == 1:
                 with open("./data/paperhash2structured_content.json", "w") as f:
                     paperhash2structured_content_json = {
                         key: value.to_json()
                         for key, value in paperhash2structured_content.items()
                     }
                     json.dump(paperhash2structured_content_json, f, indent=4)
+
+    # Save the latest paperhash2structured_content
+    with open("./data/paperhash2structured_content.json", "w") as f:
+        paperhash2structured_content_json = {
+            key: value.to_json() for key, value in paperhash2structured_content.items()
+        }
+        json.dump(paperhash2structured_content_json, f, indent=4)
 
     dataset.save_to_disk(config["save_directory"])
 

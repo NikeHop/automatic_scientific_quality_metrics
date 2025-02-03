@@ -2,6 +2,8 @@ section_classifier_openreview.ckpt
 data/
 logs/
 model_store/
+build/
 wandb/
 __pycache__/
 grobid-0.7.3
+*egg-info/
