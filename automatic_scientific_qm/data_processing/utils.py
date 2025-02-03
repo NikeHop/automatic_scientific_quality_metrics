@@ -21,7 +21,7 @@ class StructuredContent:
         for section in self.structured_content.values():
             if section.classification == section_type:
                 return section.text
-        return ""
+        return None
 
     def get_full_text(self, with_appendix: bool = True) -> str:
         text = ""
@@ -52,7 +52,27 @@ class StructuredContent:
         else:
             text = f"Main paper: \n {text} \n"
 
+        if text == "":
+            text = None
+
         return text
+
+    def to_json(self) -> None:
+        structure_content_json = {}
+        for key, value in self.structured_content.items():
+            structure_content_json[key] = value.model_dump()
+
+        return structure_content_json
+
+    @classmethod
+    def load_json(cls, structure_content_json: dict) -> None:
+        obj = cls(structure_content_json)
+
+        for key, value in obj.structured_content.items():
+            section = Section(**value)
+            obj.structured_content[key] = section
+
+        return obj
 
 
 def parsedpdf2structured_content(parsed_pdf: dict) -> StructuredContent:
@@ -136,7 +156,6 @@ def annotate(
                 max_length=512,
             ).to(config["device"])
 
-            print(model_inputs["input_ids"].shape)
             with torch.no_grad():
                 outputs = section_classifier.embedding_model(**model_inputs)
                 model_output = outputs.last_hidden_state.mean(dim=1)

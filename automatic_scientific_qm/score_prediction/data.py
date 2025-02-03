@@ -243,7 +243,7 @@ def get_data(config: dict) -> tuple[DataLoader, DataLoader, DataLoader]:
     val_dataset = ScorePredictionDataset(
         dataset["validation"],
         config["data"]["score_type"],
-        config["data"]["paper_representation"],
+        paper_representation,
     )
 
     val_dataloader = DataLoader(
@@ -257,7 +257,7 @@ def get_data(config: dict) -> tuple[DataLoader, DataLoader, DataLoader]:
     test_dataset = ScorePredictionDataset(
         dataset["test"],
         config["data"]["score_type"],
-        config["data"]["paper_representation"],
+        paper_representation,
     )
 
     test_dataloader = DataLoader(

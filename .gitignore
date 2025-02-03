@@ -1,5 +1,7 @@
-automatic_scientific_qm/datasets/section_classifier_openreview.ckpt
+section_classifier_openreview.ckpt
 data/
+logs/
 model_store/
+wandb/
 __pycache__/
 grobid-0.7.3

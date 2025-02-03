@@ -6,7 +6,7 @@ seed: 42
 
 data:
   dataset: "acl_ocl"
-  pairwise_comparison: False
+  pairwise_comparison: True
   context_type: "no_context"
   paper_representation: "title_abstract"
   score_type: "avg_citations_per_month"
@@ -31,12 +31,12 @@ trainer:
 training:
   distributed: True
   accelerator: gpu
-  epochs: 1
+  epochs: 100
   gpus: [0]
   strategy: ddp_find_unused_parameters_true
 
 wandb:
   project: automatic_scientific_qm
   name: "score_prediction"
-  mode: disabled
+  mode: online
   tags: []
