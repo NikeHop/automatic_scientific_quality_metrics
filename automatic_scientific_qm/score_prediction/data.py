@@ -13,6 +13,8 @@ from datasets import Dataset as HF_Dataset
 from torch.utils.data import Dataset, DataLoader
 from transformers import AutoTokenizer
 
+EPSILON = 1e-3
+
 
 class ScorePredictionDataset(Dataset):
     def __init__(
@@ -196,6 +198,24 @@ def get_data(config: dict) -> tuple[DataLoader, DataLoader, DataLoader]:
 
                 reference_emb = outputs.last_hidden_state.mean(dim=1).cpu().numpy()
 
+            # Take log of scores where possible
+            if sample["mean_score"] is not None:
+                mean_score = np.log(sample["mean_score"] + EPSILON)
+            else:
+                mean_score = None
+
+            if sample["mean_impact"] is not None:
+                mean_impact = np.log(sample["mean_impact"] + EPSILON)
+            else:
+                mean_impact = None
+
+            if sample["avg_citations_per_month"] is not None:
+                avg_citations_per_month = np.log(
+                    sample["avg_citations_per_month"] + EPSILON
+                )
+            else:
+                avg_citations_per_month = None
+
             return {
                 "reference_emb": reference_emb,
                 "title_abstract_emb": title_abstract_emb,
@@ -204,11 +224,9 @@ def get_data(config: dict) -> tuple[DataLoader, DataLoader, DataLoader]:
                 "result_experiment_emb": result_experiment_emb,
                 "background_emb": background_emb,
                 "conclusion_emb": conclusion_emb,
-                "avg_citations_per_month": torch.tensor(
-                    sample["avg_citations_per_month"]
-                ).log(),
-                "mean_score": torch.tensor(sample["mean_score"]).log(),
-                "mean_impact": torch.tensor(sample["mean_impact"]).log(),
+                "avg_citations_per_month": avg_citations_per_month,
+                "mean_score": mean_score,
+                "mean_impact": mean_impact,
             }
 
         dataset = dataset.map(compute_embeddings, batched=False)
