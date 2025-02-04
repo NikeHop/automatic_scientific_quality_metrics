@@ -2,23 +2,25 @@
 
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
+This repo contains the code for the paper: ["Automatic Evaluation Metrics for Artificially Generated Scientific Research"]().
+
 ## Dependencies
 
-Requirements:
-* anaconda 
-* tmux
+### Requirements for running the experiments:
 
-Create a new conda environment with the necessary requirements:
+* anaconda3/miniconda3
+
+First clone the repo and then create a new conda environment with the necessary requirements:
 
 ```
+git clone https://github.com/NikeHop/automatic_scientific_quality_metrics.git
+cd automatic_scientific_quality_metrics
 conda create --name scientific_qm python=3.11
 conda activate scientific_qm
-pip install -r requirements.txt
+pip install -e .
 ```
 
-All following commands require to be run in the scientific_qm environment. 
-
-
+All following commands require to be run in the scientific_qm environment.
 
 ## Datasets
 
@@ -28,20 +30,37 @@ The datasets used in this project can be found on Huggingface:
 
 * [Scholarly Document Quality Prediction (SDQP)](https://huggingface.co/datasets/nhop/scientific-quality-score-prediction)
 
-To obtain the full OpenReview dataset with all parsed and section annotated pdfs 
-first get [GROBID](https://github.com/kermitt2/grobid) by running:
+
+This section describes how to obtain the missing parsed pdfs of the submissions, for the datasets:
+
+* openreview-iclr
+* openreview-neurips
+* openreview-full
+
+You will need tmux. For Ubuntu/Debian install it via:
 
 ```
-bash setup_grobid.sh
+sudo apt update
+sudo apt install tmux
 ```
 
-
-and then run from the `./data_processing` directory the script:
+First get [GROBID](https://github.com/kermitt2/grobid) by running:
 
 ```
-bash complete_openreview_dataset.sh
+bash ./scripts/setup_grobid.sh
 ```
 
+Test whether GROBID runs:
+
+```
+bash ./scripts/run_grobid.sh
+```
+
+If you run into trouble setting up GROBID have a look at the git issues [here](https://github.com/allenai/s2orc-doc2json). If GROBID works, run the script:
+
+```
+bash ./scripts/complete_openreview_dataset.sh
+```
 
 ## Train Section Classifier
 
@@ -106,7 +125,7 @@ We run the following two LLM-reviewers on a subset of ICLR-2024 and NeurIPS-2024
 
 The code makes use of the following GitHubs:
 
-* 
-* 
-* 
-* 
+* [https://github.com/kermitt2/grobid](https://github.com/kermitt2/grobid) (Apache-2.0 license)
+* [https://github.com/allenai/s2orc-doc2json](https://github.com/allenai/s2orc-doc2json) (Apache-2.0 license)
+* [https://github.com/SakanaAI/AI-Scientist](https://github.com/SakanaAI/AI-Scientist) (Apache-2.0 license)
+* [https://github.com/NoviScl/AI-Researcher](https://github.com/NoviScl/AI-Researcher) (MIT license)

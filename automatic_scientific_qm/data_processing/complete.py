@@ -29,6 +29,10 @@ from automatic_scientific_qm.data_processing.utils import (
 
 
 def complete_openreview_dataset(config: dict) -> None:
+    # Create save directory
+    save_directory = os.path.join(config["save_directory"], config["dataset_name"])
+    os.makedirs(save_directory, exist_ok=True)
+
     # Load existing
     if os.path.exists("./data/paperhash2structured_content.json"):
         with open("./data/paperhash2structured_content.json", "r") as f:
@@ -174,16 +178,20 @@ def complete_openreview_dataset(config: dict) -> None:
         }
         json.dump(paperhash2structured_content_json, f, indent=4)
 
-    dataset.save_to_disk(config["save_directory"])
+    dataset.save_to_disk(save_directory)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=str, required=True)
+    parser.add_argument("--dataset", type=str, default=None)
     args = parser.parse_args()
 
     with open(args.config, "r") as f:
         config = yaml.safe_load(f)
+
+    if args.dataset is not None:
+        config["dataset_name"] = args.dataset
 
     # Create logs directory if needed
     os.makedirs("logs", exist_ok=True)
