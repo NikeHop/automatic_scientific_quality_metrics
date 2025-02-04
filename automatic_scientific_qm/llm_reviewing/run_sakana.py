@@ -12,12 +12,14 @@ import yaml
 
 from typing import Union
 
+import anthropic
 import numpy as np
 import json
 import openai
 
-from automatic_scientific_qm.utils.data import Paper
+from datasets import load_from_disk
 
+from automatic_scientific_qm.utils.data import Paper
 from automatic_scientific_qm.llm_reviewing.sakana_utilities import (
     get_batch_responses_from_llm,
     get_response_from_llm,
@@ -68,6 +70,17 @@ def run_evaluation(config: dict) -> None:
     Returns:
         None
     """
+    # Load dataset
+    if config["dataset"] == "iclr":
+        dataset = load_from_disk("../../data/processed/openreview-iclr")
+        paperhash2data = {sample["paperhash"]: sample for sample in dataset["test"]}
+
+    elif config["dataset"] == "neurips":
+        dataset = load_from_disk("../../data/processed/openreview-neurips")
+        paperhash2data = {sample["paperhash"]: sample for sample in dataset["test"]}
+
+    else:
+        raise ValueError(f"Dataset {config['dataset']} not recognized")
 
     if config["dataset"] == "iclr":
         form = ICLR_FORM
@@ -76,7 +89,7 @@ def run_evaluation(config: dict) -> None:
     else:
         raise ValueError(f"Dataset {config['dataset']} not recognized")
 
-    client = openai.Client()
+    client = get_client(config)
 
     with open(config["venue_file"], "r") as f:
         paperhashes = json.load(f)
@@ -92,15 +105,13 @@ def run_evaluation(config: dict) -> None:
         if paperhash in paperhash2review:
             continue
         try:
-            paperpath = os.path.join(config["data_dir"], f"{paperhash}.json")
-            with open(paperpath) as f:
-                paper = json.load(f)
-                paper = Paper(**paper)
+            paper_sample = paperhash2data[paperhash]
+
         except Exception as e:
             logging.info(f"Error loading paper {paperhash}: {e}")
             continue
 
-        text = paper.get_text(False)
+        text = paper_sample["full_text"]
 
         review = perform_review(
             text,
@@ -347,25 +358,42 @@ def get_meta_review(
     return meta_review
 
 
+def get_client(config):
+    if config["llm_provider"] == "openai":
+        assert (
+            "OPENAI_API_KEY" in os.environ
+        ), "Please set the OPENAI_API_KEY environment variable"
+        config["model"] = config["openai_model"]
+        return openai.Client(api_key=os.environ["OPENAI_API_KEY"])
+
+    elif config["llm_provider"] == "anthropic":
+        assert (
+            "ANTHROPIC_API_KEY" in os.environ
+        ), "Please set the ANTHROPIC_API_KEY environment variable"
+        config["model"] = config["anthropic_model"]
+        return anthropic.Client(api_key=os.environ["ANTHROPIC_API_KEY"])
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=str, required=True)
+    parser.add_argument("--llm_provider", type=str, default=None)
     args = parser.parse_args()
 
     with open(args.config, "r") as file:
         config = yaml.safe_load(file)
 
-    # Create logger
-    logger = logging.getLogger(__name__)
-    logger.setLevel(logging.INFO)
+    if args.llm_provider is not None:
+        config["llm_provider"] = args.llm_provider
 
-    # Log to console
-    console_handler = logging.StreamHandler()
-    console_handler.setLevel(logging.INFO)
-    formatter = logging.Formatter(
-        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    # Setup logging
+    os.makedirs("logs", exist_ok=True)
+
+    logging.basicConfig(
+        filename="logs/sakana.log",
+        filemode="a+",
+        format="%(asctime)s - %(levelname)s - %(message)s",
+        level=logging.INFO,
     )
-    console_handler.setFormatter(formatter)
-    logger.addHandler(console_handler)
 
     run_evaluation(config)

@@ -10,6 +10,7 @@ import numpy as np
 import pandas as pd
 import torch
 import wandb
+import yaml
 
 from automatic_scientific_qm.llm_reviewing.swiss_tournament import tournament_ranking
 from automatic_scientific_qm.score_prediction.trainer import (
@@ -140,12 +141,21 @@ def run_direct_prediction(samples: list, config: dict) -> None:
 
 
 if __name__ == "__main__":
-    argparser = argparse.ArgumentParser()
-    argparser.add_argument("--config", type=str, required=True)
-    args = argparser.parse_args()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--config", type=str, required=True)
+    parser.add_argument("--checkpoint", type=str, required=True)
+    parser.add_argument(
+        "--dataset", type=str, choices=["iclr", "neurips"], default=None
+    )
+
+    args = parser.parse_args()
 
     with open(args.config, "r") as file:
-        config = json.load(file)
+        config = yaml.safe_load(file)
+
+    if args.dataset:
+        config["dataset"] = args.dataset
+    config["checkpoint"] = args.checkpoint
 
     wandb.init(**config["logging"])
 

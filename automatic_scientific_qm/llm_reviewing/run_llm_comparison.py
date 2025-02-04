@@ -10,6 +10,7 @@ import torch
 import yaml
 
 from anthropic import Anthropic
+from datasets import load_from_disk
 from openai import OpenAI
 
 from automatic_scientific_qm.utils.data import Paper
@@ -35,23 +36,23 @@ def run_llm_ranking(config: dict) -> None:
 
     # Load papers
     if config["dataset"] == "iclr":
-        samples = torch.load("../../data/iclr_200_subset_data.pt")
+        samples = torch.load("./data/iclr_200_subset_data.pt")
+        dataset = load_from_disk("../../data/processed/openreview-iclr")
     elif config["dataset"] == "neurips":
-        samples = torch.load("../../data/neurips_200_subset_data.pt")
+        samples = torch.load("./data/neurips_200_subset_data.pt")
+        dataset = load_from_disk("../../data/processed/openreview-neurips")
+
     else:
         raise NotImplementedError("Only iclr and neurips are supported")
 
-    paper_directory = "../../data/openreview-dataset-private/labelled_papers"
-    paperhash2sample = {}
+    paperhash2sample = {sample["paperhash"]: sample for sample in samples}
+    paperhashes = list(paperhash2sample.keys())
     papers = []
-    for sample in samples:
-        paperhash = sample["paperhash"]
-        paperhash2sample[paperhash] = sample
-        with open(os.path.join(paper_directory, f"{paperhash}.json")) as file:
-            paper = json.load(file)
-            paper = Paper(**paper)
-            papers.append(paper)
+    for sample in dataset["test"]:
+        if sample["paperhash"] in paperhashes:
+            papers.append(sample)
 
+    # Load dataset
     tournament_ranking(
         papers,
         config["model"],
@@ -59,7 +60,6 @@ def run_llm_ranking(config: dict) -> None:
         config["dataset"],
         paperhash2sample,
         max_round=5,
-        format="json",
         config=config,
     )
 
@@ -67,9 +67,23 @@ def run_llm_ranking(config: dict) -> None:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=str, required=True)
+    parser.add_argument("--llm_provider", type=str, default=None)
+    parser.add_argument("--dataset", type=str, default=None)
     args = parser.parse_args()
 
     with open(args.config, "r") as file:
         config = yaml.safe_load(file)
+
+    config["model_type"] = "llm"
+    if args.llm_provider:
+        config["llm_provider"] = args.llm_provider
+
+    if args.dataset:
+        config["dataset"] = args.dataset
+
+    if config["llm_provider"] == "anthropic":
+        config["model"] = config["anthropic_model"]
+    elif config["llm_provider"] == "openai":
+        config["model"] = config["openai_model"]
 
     run_llm_ranking(config)

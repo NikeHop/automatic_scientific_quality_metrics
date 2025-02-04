@@ -12,6 +12,101 @@ from automatic_scientific_qm.section_classification.utils import (
     LABEL2SECTION,
 )
 
+from datasets import Value, Sequence, Features
+
+AFFILIATION_FEATURE = Features(
+    {
+        "laboratory": Value("string"),
+        "institution": Value("string"),
+        "location": Value("string"),
+    }
+)
+
+AUTHOR_FEATURE = Features({"name": Value("string"), "affiliation": AFFILIATION_FEATURE})
+
+TEXT_REVIEW_FEATURE = Features(
+    {
+        "title": Value("string"),
+        "paper_summary": Value("string"),
+        "main_review": Value("string"),
+        "strength_weakness": Value("string"),
+        "questions": Value("string"),
+        "limitations": Value("string"),
+        "review_summary": Value("string"),
+    }
+)
+
+REVIEW_FEATURE = Features(
+    {
+        "review_id": Value("string"),
+        "review": TEXT_REVIEW_FEATURE,
+        "score": Value("float"),
+        "confidence": Value("float"),
+        "novelty": Value("float"),
+        "correctness": Value("float"),
+        "clarity": Value("float"),
+        "impact": Value("float"),
+        "reproducibility": Value("float"),
+        "ethics": Value("string"),
+    }
+)
+
+COMMENT_FEATURE = Features({"title": Value("string"), "comment": Value("string")})
+
+REFERENCE_FEATURE = Features(
+    {
+        "paperhash": Value("string"),
+        "title": Value("string"),
+        "abstract": Value("string"),
+        "authors": Sequence(AUTHOR_FEATURE),
+        "arxiv_id": Value("string"),
+        "s2_corpus_id": Value("string"),
+        "intents": Sequence(Value("string")),
+        "isInfluential": Value("bool"),
+    }
+)
+
+
+FEATURES = FEATURES = Features(
+    {
+        "paperhash": Value("string"),
+        "arxiv_id": Value("string"),
+        "s2_corpus_id": Value("string"),
+        "title": Value("string"),
+        "abstract": Value("string"),
+        "authors": Sequence(AUTHOR_FEATURE),
+        "summary": Value("string"),
+        "field_of_study": Sequence(Value("string")),
+        "venue": Value("string"),
+        "publication_date": Value("string"),
+        "n_references": Value("int32"),
+        "n_citations": Value("int32"),
+        "n_influential_citations": Value("int32"),
+        "introduction": Value("string"),
+        "background": Value("string"),
+        "methodology": Value("string"),
+        "experiments_results": Value("string"),
+        "conclusion": Value("string"),
+        "full_text": Value("string"),
+        "decision": Value("bool"),
+        "decision_text": Value("string"),
+        "reviews": Sequence(REVIEW_FEATURE),
+        "comments": Sequence(COMMENT_FEATURE),
+        "references": Sequence(REFERENCE_FEATURE),
+        "hypothesis": Value("string"),
+        "month_since_publication": Value("int32"),
+        "avg_citations_per_month": Value("float"),
+        "mean_score": Value("float"),
+        "mean_novelty": Value("float"),
+        "mean_confidence": Value("float"),
+        "mean_correctness": Value("float"),
+        "mean_clarity": Value("float"),
+        "mean_impact": Value("float"),
+        "mean_reproducibility": Value("float"),
+        "openreview_submission_id": Value("string"),
+    }
+)
+
 
 class StructuredContent:
     def __init__(self, structured_content: dict) -> None:

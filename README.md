@@ -108,7 +108,7 @@ If the code is run for the first time for each dataset the text of the datasets 
 
 **Note 1:** 
 
-This section requires that the complete OpenReview dataset is available. 
+This section requires that the missing PDF submissions for `openreview-iclr` and `openreview-neurips` are parsed (see [here](#datasets)). 
 
 **Note 2:** 
 
@@ -117,13 +117,30 @@ This section requires an API key for either OpenAI or Anthropic. If you want to 
 
 We run the following two LLM-reviewers on a subset of ICLR-2024 and NeurIPS-2024 submissions:
 
-(1) Sakana's LLM reviewer \
-(2) Paiwise Comparison Reviewer.
+(1) [Sakana's LLM reviewer](https://arxiv.org/abs/2408.06292) 
 
+The first argument specifies the llm_provider, currently only openai and anthropic are supported
+
+```
+bash ./scripts/run_sakana_reviewer.sh openai
+```
+
+
+(2) [Paiwise Comparison Reviewer](https://arxiv.org/abs/2409.04109).
+
+```
+bash ./scripts/run_llm_pairwise_reviewer.sh openai
+```
+
+(3) Run score prediction models on subsets 
+
+```
+bash run_rsp_reviewer.sh
+```
 
 ## Acknowledgements
 
-The code makes use of the following GitHubs:
+The code makes use of the following repos:
 
 * [https://github.com/kermitt2/grobid](https://github.com/kermitt2/grobid) (Apache-2.0 license)
 * [https://github.com/allenai/s2orc-doc2json](https://github.com/allenai/s2orc-doc2json) (Apache-2.0 license)

@@ -10,7 +10,7 @@ import os
 import tqdm
 import yaml
 
-from datasets import load_dataset
+from datasets import load_dataset, Dataset, DatasetDict
 from urllib.error import HTTPError
 from urllib.request import urlretrieve
 from doc2json.grobid2json.grobid.grobid_client import (
@@ -25,6 +25,7 @@ from automatic_scientific_qm.data_processing.utils import (
     parsedpdf2structured_content,
     annotate,
     StructuredContent,
+    FEATURES,
 )
 
 
@@ -41,7 +42,8 @@ def complete_openreview_dataset(config: dict) -> None:
                 paperhash2structured_content[key] = StructuredContent.load_json(value)
     else:
         paperhash2structured_content = {}
-    new_samples = 0
+
+    n_new_samples = 0
 
     # Setup GROBID client for pdf parsing
     grobid_client = GrobidClient()
@@ -70,7 +72,9 @@ def complete_openreview_dataset(config: dict) -> None:
     section_classifier.eval()
 
     # Iterate over samples in the dataset
+    new_dataset_dict = {}
     for split in ["train", "validation", "test"]:
+        new_samples = []
         for sample in tqdm.tqdm(dataset[split]):
             # If we cannot extract segments set them to None
             introduction = None
@@ -121,18 +125,19 @@ def complete_openreview_dataset(config: dict) -> None:
                         structured_content = annotate(
                             structured_content, section_classifier, config
                         )
-                        new_samples += 1
+                        n_new_samples += 1
                     except Exception as e:
                         logging.warning(
                             f"Could not parse the pdf for submission {sample['paperhash']}."
                         )
                         logging.warning(e)
                         structured_content = StructuredContent({})
-                        new_samples += 1
+                        n_new_samples += 1
 
             # Add to paperhash2structured_content
             paperhash2structured_content[sample["paperhash"]] = structured_content
 
+            # print(structured_content.structured_content)
             if structured_content.structured_content is not None:
                 # Annotate the pdf with the section classifier
                 introduction = structured_content.get_section_by_classification(
@@ -155,21 +160,33 @@ def complete_openreview_dataset(config: dict) -> None:
                 if len(structured_content.structured_content) > 0:
                     logging.info(f"Parsed and annotated the pdf {sample['paperhash']}.")
 
+                """
+                print(f"Intro: {introduction}")
+                print(f"Background {background}")
+                print(f"Methodology {methodology}")
+                print(f"Experiments_results: {experiments_results}")
+                print(f"conclusion {conclusion}")
+                print(f"Full text {full_text}")
+                """
+
             sample["introduction"] = introduction
             sample["background"] = background
             sample["methodology"] = methodology
             sample["experiments_results"] = experiments_results
             sample["conclusion"] = conclusion
             sample["full_text"] = full_text
+            new_samples.append(sample)
 
-            # Every 500 samples, save the paperhash2structured_content
-            if new_samples % 1000 == 1:
+            # Save the paperhash2structured_content
+            if n_new_samples % 1000 == 1:
                 with open("./data/paperhash2structured_content.json", "w") as f:
                     paperhash2structured_content_json = {
                         key: value.to_json()
                         for key, value in paperhash2structured_content.items()
                     }
                     json.dump(paperhash2structured_content_json, f, indent=4)
+
+        new_dataset_dict[split] = Dataset.from_list(new_samples, features=FEATURES)
 
     # Save the latest paperhash2structured_content
     with open("./data/paperhash2structured_content.json", "w") as f:
@@ -178,6 +195,8 @@ def complete_openreview_dataset(config: dict) -> None:
         }
         json.dump(paperhash2structured_content_json, f, indent=4)
 
+    # Save the new_dataset
+    dataset = DatasetDict(new_dataset_dict)
     dataset.save_to_disk(save_directory)
 
 

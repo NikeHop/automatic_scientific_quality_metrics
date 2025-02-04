@@ -140,8 +140,8 @@ def better_idea_llm(
             - response (str): The generated response.
             - cost (float): The cost of the API call.
     """
-    paper1_text = paper1.get_text(False)
-    paper2_text = paper2.get_text(False)
+    paper1_text = paper1["full_text"]
+    paper2_text = paper2["full_text"]
 
     prompt = f"You are a reviewer for the conference {conference} You are given two submitted papers. Decide which of them is better and should receive the higher overall score.\n"
 
@@ -216,7 +216,7 @@ def better_idea_rsp(
 
 
 def single_round(
-    papers: list[Paper],
+    papers: list[dict],
     scores: dict,
     client: Union[Anthropic, OpenAI, None],
     model: Union[PairwiseComparison, str],
@@ -254,7 +254,7 @@ def single_round(
 
     # Sort ideas based on current scores
     sorted_papers = sorted(
-        papers, key=lambda paper: scores[paper.paperhash], reverse=True
+        papers, key=lambda paper: scores[paper["paperhash"]], reverse=True
     )
 
     for i in range(0, len(sorted_papers), 2):
@@ -277,21 +277,17 @@ def single_round(
         else:
             raise NotImplementedError("Only llm and rsp are supported")
 
-        paper1_review_score = np.array(
-            [review.score for review in paper1.reviews]
-        ).mean()
-        paper2_review_score = np.array(
-            [review.score for review in paper2.reviews]
-        ).mean()
+        paper1_review_score = paper1["mean_score"]
+        paper2_review_score = paper2["mean_score"]
 
         if result.strip() == "1":
-            scores[paper1.paperhash] += 1
+            scores[paper1["paperhash"]] += 1
 
             if paper1_review_score >= paper2_review_score:
                 correct_comparisons += 1
 
         else:
-            scores[paper2.paperhash] += 1
+            scores[paper2["paperhash"]] += 1
 
             if paper2_review_score >= paper1_review_score:
                 correct_comparisons += 1
@@ -333,11 +329,13 @@ def tournament_ranking(
     # Load client
     if config["model_type"] == "llm":
         if config["llm_provider"] == "anthropic":
+            assert "ANTHROPIC_API_KEY" in os.environ, "No ANTHROPIC_API_KEY found"
             key = os.environ["ANTHROPIC_API_KEY"]
             client = Anthropic(
                 api_key=key,
             )
         elif config["llm_provider"] == "openai":
+            assert "OPENAI_API_KEY" in os.environ, "No OPEN_API_KEY found"
             key = os.environ["OPENAI_API_KEY"]
             client = OpenAI(api_key=key)
         else:
@@ -378,10 +376,7 @@ def tournament_ranking(
         current_round += 1
 
     for paper in papers:
-        review_score = np.array(
-            [review.score for review in paper.reviews if review != None]
-        ).mean()
-        scores[paper.paperhash] = (scores[paper.paperhash], review_score)
+        scores[paper["paperhash"]] = (scores[paper["paperhash"]], paper["mean_score"])
 
     # Log final scores
     with open(
