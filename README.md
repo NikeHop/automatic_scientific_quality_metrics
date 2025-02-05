@@ -20,7 +20,7 @@ conda activate scientific_qm
 pip install -e .
 ```
 
-All following commands require to be run in the scientific_qm environment.
+All following commands require to be run in the scientific_qm environment. Results are logged to wandb.
 
 ## Datasets
 

@@ -5,7 +5,6 @@ seed: 42
 
 data:
   batch_size: 128
-  compute_embeddings: True
   max_n_sentences_per_example: 200
   num_workers: 2
   output_directory: "../../data/section_classification/"
@@ -34,6 +33,6 @@ training:
 logging:
   project: automatic_scientific_qm
   name: "section_classifier"
-  mode: disabled
+  mode: online
   tags: []
 

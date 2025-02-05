@@ -198,17 +198,7 @@ def get_data(config: dict) -> tuple[DataLoader, DataLoader, DataLoader]:
 
                 reference_emb = outputs.last_hidden_state.mean(dim=1).cpu().numpy()
 
-            # Take log of scores where possible
-            if sample["mean_score"] is not None:
-                mean_score = np.log(sample["mean_score"] + EPSILON)
-            else:
-                mean_score = None
-
-            if sample["mean_impact"] is not None:
-                mean_impact = np.log(sample["mean_impact"] + EPSILON)
-            else:
-                mean_impact = None
-
+            # Take log of citations per month
             if sample["avg_citations_per_month"] is not None:
                 avg_citations_per_month = np.log(
                     sample["avg_citations_per_month"] + EPSILON
@@ -225,8 +215,6 @@ def get_data(config: dict) -> tuple[DataLoader, DataLoader, DataLoader]:
                 "background_emb": background_emb,
                 "conclusion_emb": conclusion_emb,
                 "avg_citations_per_month": avg_citations_per_month,
-                "mean_score": mean_score,
-                "mean_impact": mean_impact,
             }
 
         dataset = dataset.map(compute_embeddings, batched=False)
