@@ -11,22 +11,22 @@ echo "Donwloading the score prediction models"
 
 # Review Score Predictor ICLR Title + Abstract
 if [ ! -f "./model_store/iclr_score_prediction.ckpt" ]; then
-    gdown 1h0pEOamz7u8x4li5M6UZBfdww_aU7ieY
+    gdown 1n42AggcFJcoU-LSj0ME1wYCHbSrlLV-G
 fi
 
 # Review Score Predictor NeurIPS Title + Abstract
 if [ ! -f "./model_store/neurips_score_prediction.ckpt" ]; then
-    gdown 1GYfnAhMb-2ee5-zlsePStN8ASi2lUBEc
+    gdown 1W1yFGXYBTrk4_-XesATYbsLq1jLzeF1H
 fi
 
 # Review Pairwise Comparison ICLR Title + Abstract
 if [ ! -f "./model_store/iclr_pairwise_comparison.ckpt" ]; then
-    gdown 1fmolh5_vzDictgJIZ3RE5fCNvL5H6Rf0
+    gdown 1IJAotMis3XBykWotdl4DItGO9WydzhS6
 fi
 
 # Review Pairwise Comparison NeurIPS Title + Abstract
 if [ ! -f "./model_store/neurips_pairwise_comparison.ckpt" ]; then
-    gdown 1mniuos-obvxLnukCW-zyLjSWUndUrr07
+    gdown 1OBcyNVtp6653VTuPoBDx94z_GIU9LYF_ 
 fi
 
 cd ..

@@ -4,6 +4,8 @@ Data loading and processing utilities.
 
 import os
 
+from typing import Callable
+
 import numpy as np
 import torch
 
@@ -11,6 +13,7 @@ from adapters import AutoAdapterModel
 from datasets import load_dataset, load_from_disk
 from datasets import Dataset as HF_Dataset
 from torch.utils.data import Dataset, DataLoader
+from torch.nn.utils.rnn import pad_sequence
 from transformers import AutoTokenizer
 
 EPSILON = 1e-3
@@ -59,28 +62,125 @@ class ScorePredictionDataset(Dataset):
         return full_paper
 
 
-def collate(batch: list) -> dict:
-    scores = []
-    paper_representations = []
-    references = []
-    full_papers = []
-    n_references = []
-    for score, paper_representation, reference, full_paper in batch:
-        scores.append(score)
-        paper_representations.append(paper_representation)
-        references.append(reference)
-        n_references.append(reference.shape[0])
-        full_papers.append(full_paper)
+def collate_factory(transform_data: Callable):
+    """
+    Factory function that returns a collate function for creating batches of data.
 
-    scores = torch.tensor(scores, dtype=torch.float)
+    Args:
+        transform_data (Callable): A function that transforms the data.
 
-    return {
-        "scores": scores,
-        "paper_representations": paper_representations,
-        "references": references,
-        "full_papers": full_papers,
-        "n_references": n_references,
-    }
+    Returns:
+        collate (Callable): A collate function that takes a batch of data and returns a dictionary containing the collated data.
+    """
+
+    def collate(batch: list) -> dict:
+        scores = []
+        paper_representations = []
+        references = []
+        full_papers = []
+        n_references = []
+        for score, paper_representation, reference, full_paper in batch:
+            scores.append(score)
+            paper_representations.append(paper_representation)
+            references.append(reference)
+            n_references.append(reference.shape[0])
+            full_papers.append(full_paper)
+
+        scores = torch.tensor(scores, dtype=torch.float)
+        papers, masks = transform_data(paper_representations, references, full_papers)
+
+        return papers, masks, scores
+
+    return collate
+
+
+def transform_data_factory(config):
+    """
+    Factory function that returns a function to transform data based on the given configuration.
+
+    Args:
+        config (dict): A dictionary containing the configuration parameters.
+
+    Returns:
+        transform_data (function): A function that transforms input data based on the configuration.
+
+    Raises:
+        NotImplementedError: If the context type specified in the configuration is not implemented.
+    """
+    context_type = config["context_type"]
+    pairwise_comparison = config["data"]["pairwise_comparison"]
+
+    def transform_data(
+        paper_representations: list[torch.Tensor],
+        references: list[torch.Tensor],
+        full_papers: list[torch.Tensor],
+        scores: torch.Tensor,
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        """
+        Transforms input data based on the specified context type.
+
+        Args:
+            paper_representations (list[torch.Tensor]): A list of paper representations.
+            references (list[torch.Tensor]): A list of reference embeddings.
+            full_papers (list[torch.Tensor]): A list of full paper embeddings.
+
+        Returns:
+            tuple[torch.Tensor, torch.Tensor]: A tuple containing the transformed papers and masks.
+        """
+        input_lengths = []
+
+        if context_type == "no_context":
+            input_representations = torch.stack(paper_representations, dim=0)
+            masks = torch.zeros(
+                input_representations.shape[0], input_representations.shape[1]
+            )
+
+        elif context_type == "references":
+            for paper_emb, context_emb in zip(paper_representations, references):
+                input_representation = torch.cat(
+                    [paper_emb.unsqueeze(0), context_emb], dim=0
+                )
+                input_lengths.append(input_representation.shape[0])
+
+            input_representations = pad_sequence(
+                input_representations, batch_first=True
+            )
+            B, T, _ = input_representations.shape
+            input_lengths = torch.tensor(input_lengths)
+            masks = ~(torch.arange(T).expand(B, T) < input_lengths.unsqueeze(1))
+
+        elif context_type == "full_paper":
+            for paper_emb, context_emb in zip(paper_representations, full_papers):
+                input_representation = torch.cat(
+                    [paper_emb.unsqueeze(0), context_emb], dim=0
+                )
+                input_representations.append(input_representation)
+
+            input_representations = torch.stack(input_representations, dim=0)
+            masks = torch.zeros(
+                input_representations.shape[0], input_representations.shape[1]
+            )
+
+        else:
+            raise NotImplementedError(
+                f"The context type {context_type} is not implemented."
+            )
+
+        if config["data"]["pairwise_comparison"]:
+            n_samples = len(scores) // 2
+            papers1 = input_representations[:n_samples]
+            papers2 = input_representations[n_samples : 2 * n_samples]
+            masks1 = masks[:n_samples]
+            masks2 = masks[n_samples : 2 * n_samples]
+            scores = (scores[:n_samples] >= scores[n_samples : 2 * n_samples]).float()
+            return papers1, masks1, papers2, masks2, scores
+        else:
+            papers = input_representations
+            masks = masks
+
+            return papers, masks, scores
+
+    return transform_data
 
 
 def get_data(config: dict) -> tuple[DataLoader, DataLoader, DataLoader]:
@@ -237,6 +337,9 @@ def get_data(config: dict) -> tuple[DataLoader, DataLoader, DataLoader]:
         )
 
     # Create dataloaders
+    transform_data = transform_data_factory(config)
+    collate = collate_factory(transform_data)
+
     train_dataset = ScorePredictionDataset(
         dataset["train"],
         config["data"]["score_type"],

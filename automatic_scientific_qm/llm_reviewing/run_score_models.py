@@ -68,16 +68,12 @@ def run_swiss_tournament(samples: list, config) -> None:
         config["model_checkpoint"], map_location=config["device"]
     )
 
-    paper_directory = "../../data/openreview-dataset-private/labelled_papers"
     paperhash2sample = {}
     papers = []
     for sample in samples:
         paperhash = sample["paperhash"]
         paperhash2sample[paperhash] = sample
-        with open(os.path.join(paper_directory, f"{paperhash}.json")) as file:
-            paper = json.load(file)
-            paper = Paper(**paper)
-            papers.append(paper)
+        papers.append(sample)
 
     tournament_ranking(
         papers,
@@ -116,19 +112,19 @@ def run_direct_prediction(samples: list, config: dict) -> None:
         paperhash2sample[paperhash] = sample
 
     for paperhash, sample in paperhash2sample.items():
-        paper_representation = "title_abstract"
-        score_type = "scores"
-        true_score = np.array(sample[score_type]).mean()
-        paper = sample[paper_representation]
-        paper = torch.tensor(paper).float().to(config["device"])
+        true_score = samples["mean_score"]
+        paper_representation = torch.tensor(
+            sample["paper_representation"], dtype=torch.float
+        ).to(config["device"])
+        masks = torch.tensor(sample["masks"], dtype=torch.float)
 
-        masks = (
-            ~torch.tensor([[1] * paper.shape[0]], dtype=torch.long)
-            .bool()
-            .to(config["device"])
-        )
+        data_sample = {
+            "scores": true_score.to(config["device"]),
+            "paper_representations": paper_representation,
+            "masks": masks,
+        }
 
-        predicted_score = rsp_model.predict((paper, masks, None)).item()
+        predicted_score = rsp_model.predict(data_sample).item()
 
         true_scores.append(true_score)
         pred_scores.append(predicted_score)

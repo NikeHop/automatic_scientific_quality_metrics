@@ -27,7 +27,7 @@ class ScorePrediction(pl.LightningModule):
         self.save_hyperparameters()
 
     def get_loss(self, data: dict) -> torch.Tensor:
-        papers, masks, scores = self.transform_data(data)
+        papers, masks, scores = data
         predicted_scores = self.score_model(papers, masks).squeeze(1)
         loss = self.loss(predicted_scores, scores)
         return loss
@@ -42,7 +42,7 @@ class ScorePrediction(pl.LightningModule):
         self.log("validation/loss", loss)
 
     def predict(self, data: dict) -> torch.Tensor:
-        papers, masks, _ = self.transform_data(data)
+        papers, masks, _ = data
         predicted_scores = self.score_model(papers, masks).squeeze(1)
         return predicted_scores
 
