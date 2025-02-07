@@ -37,6 +37,6 @@ training:
 
 wandb:
   project: automatic_scientific_qm
-  name: "score_prediction"
+  name: "score_prediction_acl_ocl"
   mode: online
   tags: []

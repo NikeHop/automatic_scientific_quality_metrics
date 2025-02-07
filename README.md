@@ -20,9 +20,10 @@ conda activate scientific_qm
 pip install -e .
 ```
 
-All following commands require to be run in the scientific_qm environment. Results are logged to wandb.
+All the following commands require to be run in the scientific_qm environment. Results are logged to wandb.
 
 ## Datasets
+
 
 The datasets used in this project can be found on Huggingface:
 
@@ -44,7 +45,7 @@ sudo apt update
 sudo apt install tmux
 ```
 
-First get [GROBID](https://github.com/kermitt2/grobid) by running:
+All commands should be run from the `./automatic_scientific_qm/data_processing` directory. First get [GROBID](https://github.com/kermitt2/grobid) by running:
 
 ```
 bash ./scripts/setup_grobid.sh
@@ -64,7 +65,7 @@ bash ./scripts/complete_openreview_dataset.sh
 
 ## Train Section Classifier
 
-To train the section classifier on sections from the ACL-OCL dataset run from the `./section_classification directory`:
+To train the section classifier on sections from the ACL-OCL dataset run from the `./automatic_scientific_qm/section_classification directory`:
 
 ```
 python train.py --config ./configs/train_acl_ocl.yaml
@@ -74,7 +75,7 @@ Running the code for the first time will embed the dataset using [SPECTER2](http
 
 ## Train Score Predictors
 
-To train the score prediction models run from the `./score_prediction` directory the following command:
+To train the score prediction models run from the `./automatic_scientific_qm/score_prediction` directory the following command:
 
 ```
 python train.py --config ./configs/name_of_config.yaml
@@ -105,6 +106,8 @@ For the score prediction models on the OpenReview dataset use/modify the `openre
 If the code is run for the first time for each dataset the text of the datasets will be embedded using [SPECTER2](https://huggingface.co/allenai/specter2), which takes ~3hr. 
 
 ## Run LLM Reviewers  
+
+All commands should be run from the `./automatic_scientific_qm/llm_reviewing` directory.
 
 **Note 1:** 
 
@@ -144,7 +147,7 @@ bash ./scripts/run_llm_pairwise_reviewer.sh openai
 (3) Run score prediction models on subsets 
 
 ```
-bash run_rsp_reviewer.sh
+bash ./scripts/run_rsp_reviewer.sh
 ```
 
 ## Acknowledgements
