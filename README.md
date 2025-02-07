@@ -115,6 +115,15 @@ This section requires that the missing PDF submissions for `openreview-iclr` and
 This section requires an API key for either OpenAI or Anthropic. If you want to use the Anthropic API, store the API key as an environment variable in `ANTHROPIC_API_KEY`. If you want to use the OpenAI API, store the API key as an environment variable in
 `OPENAI_API_KEY`.
 
+**Note 3:** 
+
+Download the necessary data by running
+
+```
+bash ./scripts/download.sh
+```
+
+### Running Review Models
 We run the following two LLM-reviewers on a subset of ICLR-2024 and NeurIPS-2024 submissions:
 
 (1) [Sakana's LLM reviewer](https://arxiv.org/abs/2408.06292) 

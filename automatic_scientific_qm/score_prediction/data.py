@@ -87,9 +87,10 @@ def collate_factory(transform_data: Callable):
             full_papers.append(full_paper)
 
         scores = torch.tensor(scores, dtype=torch.float)
-        papers, masks = transform_data(paper_representations, references, full_papers)
-
-        return papers, masks, scores
+        transformed_data = transform_data(
+            paper_representations, references, full_papers, scores
+        )
+        return transformed_data
 
     return collate
 
@@ -107,7 +108,7 @@ def transform_data_factory(config):
     Raises:
         NotImplementedError: If the context type specified in the configuration is not implemented.
     """
-    context_type = config["context_type"]
+    context_type = config["data"]["context_type"]
     pairwise_comparison = config["data"]["pairwise_comparison"]
 
     def transform_data(
@@ -166,7 +167,7 @@ def transform_data_factory(config):
                 f"The context type {context_type} is not implemented."
             )
 
-        if config["data"]["pairwise_comparison"]:
+        if pairwise_comparison:
             n_samples = len(scores) // 2
             papers1 = input_representations[:n_samples]
             papers2 = input_representations[n_samples : 2 * n_samples]
@@ -181,6 +182,20 @@ def transform_data_factory(config):
             return papers, masks, scores
 
     return transform_data
+
+
+def get_filter(config: dict) -> Callable:
+    paper_representation = f"{config['data']['paper_representation']}_emb"
+    filter1 = lambda x: x[config["data"]["score_type"]] is not None
+    filter2 = (
+        lambda x: x[paper_representation] is not None and x[paper_representation].any()
+    )
+    filter3 = lambda x: x["reference_emb"].any()
+
+    if config["data"]["context_type"] == "references":
+        return lambda x: filter1(x) and filter2(x) and filter3(x)
+    else:
+        return lambda x: filter1(x) and filter2(x)
 
 
 def get_data(config: dict) -> tuple[DataLoader, DataLoader, DataLoader]:
@@ -325,6 +340,9 @@ def get_data(config: dict) -> tuple[DataLoader, DataLoader, DataLoader]:
 
     # Apply filters
     paper_representation = f"{config['data']['paper_representation']}_emb"
+
+    filter = get_filter(config)
+    dataset = dataset.filter(filter)
     dataset = dataset.filter(lambda x: x[config["data"]["score_type"]] is not None)
     dataset = dataset.filter(
         lambda x: x[paper_representation] is not None
@@ -340,8 +358,9 @@ def get_data(config: dict) -> tuple[DataLoader, DataLoader, DataLoader]:
     transform_data = transform_data_factory(config)
     collate = collate_factory(transform_data)
 
+    train_dataset = [sample for sample in dataset["train"]]
     train_dataset = ScorePredictionDataset(
-        dataset["train"],
+        train_dataset,
         config["data"]["score_type"],
         paper_representation,
     )
@@ -354,8 +373,9 @@ def get_data(config: dict) -> tuple[DataLoader, DataLoader, DataLoader]:
         collate_fn=collate,
     )
 
+    val_dataset = [sample for sample in dataset["validation"]]
     val_dataset = ScorePredictionDataset(
-        dataset["validation"],
+        val_dataset,
         config["data"]["score_type"],
         paper_representation,
     )
@@ -368,8 +388,9 @@ def get_data(config: dict) -> tuple[DataLoader, DataLoader, DataLoader]:
         collate_fn=collate,
     )
 
+    test_dataset = [sample for sample in dataset["test"]]
     test_dataset = ScorePredictionDataset(
-        dataset["test"],
+        test_dataset,
         config["data"]["score_type"],
         paper_representation,
     )

@@ -3,17 +3,12 @@ Code to run a swiss tournament between OpenReview papers using LLM as the underl
 """
 
 import argparse
-import json
-import os
 
 import torch
 import yaml
 
-from anthropic import Anthropic
 from datasets import load_from_disk
-from openai import OpenAI
 
-from automatic_scientific_qm.utils.data import Paper
 from automatic_scientific_qm.llm_reviewing.swiss_tournament import tournament_ranking
 
 """

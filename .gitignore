@@ -1,9 +1,11 @@
-section_classifier_openreview.ckpt
 data/
 logs/
+results/
 model_store/
 build/
 wandb/
+!automatic_scientific_qm/llm_reviewing/data/iclr_paperhashes.json
+!automatic_scientific_qm/llm_reviewing/data/neurips_paperhashes.json
 __pycache__/
 grobid-0.7.3
 *egg-info/

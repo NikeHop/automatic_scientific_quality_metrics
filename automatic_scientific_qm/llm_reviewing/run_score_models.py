@@ -1,10 +1,7 @@
 """
 Run the score models on the subset of OpenReview data selected for the LLM reviewing task
 """
-
 import argparse
-import json
-import os
 
 import numpy as np
 import pandas as pd
@@ -17,7 +14,7 @@ from automatic_scientific_qm.score_prediction.trainer import (
     ScorePrediction,
     PairwiseComparison,
 )
-from automatic_scientific_qm.utils.data import Paper
+from automatic_scientific_qm.score_prediction.data import transform_data_factory
 
 
 def evaluate_score_model(config: dict) -> None:
@@ -82,7 +79,6 @@ def run_swiss_tournament(samples: list, config) -> None:
         config["dataset"],
         paperhash2sample,
         max_round=5,
-        format="json",
         config=config,
     )
 
@@ -98,9 +94,16 @@ def run_direct_prediction(samples: list, config: dict) -> None:
     Returns:
         None
     """
+    # Get model
     rsp_model = ScorePrediction.load_from_checkpoint(
         config["model_checkpoint"], map_location=config["device"]
     )
+
+    # Get data transformation
+    data_config = {
+        "data": {"pairwise_comparison": False, "context_type": rsp_model.context_type}
+    }
+    transform_data = transform_data_factory(data_config)
 
     abs_errors = []
     true_scores = []
@@ -111,19 +114,25 @@ def run_direct_prediction(samples: list, config: dict) -> None:
         paperhash = sample["paperhash"]
         paperhash2sample[paperhash] = sample
 
+    paper_representation = f"{config['paper_representation']}_emb"
     for paperhash, sample in paperhash2sample.items():
-        true_score = samples["mean_score"]
-        paper_representation = torch.tensor(
-            sample["paper_representation"], dtype=torch.float
-        ).to(config["device"])
-        masks = torch.tensor(sample["masks"], dtype=torch.float)
+        true_score = torch.tensor(sample["mean_score"]).float()
+        paper = torch.tensor(sample[paper_representation], dtype=torch.float)
+        full_paper = np.stack(
+            [
+                sample["intro_emb"],
+                sample["method_emb"],
+                sample["result_experiment_emb"],
+                sample["background_emb"],
+                sample["conclusion_emb"],
+            ],
+            axis=0,
+        )
+        full_paper = torch.tensor(full_paper)
+        references = torch.tensor(sample["reference_emb"])
 
-        data_sample = {
-            "scores": true_score.to(config["device"]),
-            "paper_representations": paper_representation,
-            "masks": masks,
-        }
-
+        data_sample = transform_data([paper], [references], [full_paper], true_score)
+        data_sample = [t.to(config["device"]) for t in data_sample]
         predicted_score = rsp_model.predict(data_sample).item()
 
         true_scores.append(true_score)

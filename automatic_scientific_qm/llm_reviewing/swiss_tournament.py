@@ -19,7 +19,7 @@ from anthropic import Anthropic
 from openai import OpenAI
 from tqdm import tqdm
 
-from automatic_scientific_qm.utils.data import Paper
+from automatic_scientific_qm.score_prediction.data import transform_data_factory
 from automatic_scientific_qm.score_prediction.trainer import PairwiseComparison
 
 
@@ -114,9 +114,9 @@ def call_api(
 
 @retry.retry(tries=3, delay=2)
 def better_idea_llm(
-    paper1: Paper,
-    paper2: Paper,
-    client,
+    paper1: dict,
+    paper2: dict,
+    client: Union[Anthropic, OpenAI],
     model: str,
     seed: int,
     conference: str,
@@ -164,8 +164,8 @@ def better_idea_llm(
 
 
 def better_idea_rsp(
-    paper1: Paper,
-    paper2: Paper,
+    paper1: dict,
+    paper2: dict,
     rsp_model: PairwiseComparison,
     paperhash2sample: dict,
     config: dict,
@@ -183,31 +183,51 @@ def better_idea_rsp(
     Returns:
         str: The label of the better paper according to the model. Returns "1" if paper1 is better, and "2" if paper2 is better.
     """
-
-    sample1 = paperhash2sample[paper1.paperhash]
-    sample2 = paperhash2sample[paper2.paperhash]
-
-    paper_representation = "title_abstract"
-    paper1 = sample1[paper_representation]
-    paper2 = sample2[paper_representation]
-    paper1 = torch.tensor(paper1).float().to(config["device"])
-    paper2 = torch.tensor(paper2).float().to(config["device"])
-
-    masks1 = (
-        ~torch.tensor([[1] * paper1.shape[0]], dtype=torch.long)
-        .bool()
-        .to(config["device"])
+    paper_representation = f"{config['paper_representation']}_emb"
+    paper_representations = [
+        torch.tensor(paper1[paper_representation]).float(),
+        torch.tensor(paper2[paper_representation]).float(),
+    ]
+    references = [
+        torch.tensor(paper1["reference_emb"]).float(),
+        torch.tensor(paper2["reference_emb"]).float(),
+    ]
+    full_paper1 = np.stack(
+        [
+            paper1["intro_emb"],
+            paper1["method_emb"],
+            paper1["result_experiment_emb"],
+            paper1["background_emb"],
+            paper1["conclusion_emb"],
+        ],
+        axis=0,
     )
-    masks2 = (
-        ~torch.tensor([[1] * paper2.shape[0]], dtype=torch.long)
-        .bool()
-        .to(config["device"])
+    full_paper1 = torch.tensor(full_paper1).float()
+    full_paper2 = np.stack(
+        [
+            paper2["intro_emb"],
+            paper2["method_emb"],
+            paper2["result_experiment_emb"],
+            paper2["background_emb"],
+            paper2["conclusion_emb"],
+        ],
+        axis=0,
     )
+    full_paper2 = torch.tensor(full_paper2).float()
+    full_papers = [full_paper1, full_paper2]
+    scores = torch.tensor([paper1["mean_score"], paper2["mean_score"]]).float()
+
+    transform_config = {
+        "data": {"pairwise_comparison": True, "context_type": rsp_model.context_type}
+    }
+    transform_data = transform_data_factory(transform_config)
+    transformed_data = transform_data(
+        paper_representations, references, full_papers, scores
+    )
+    transformed_data = [t.to(config["device"]) for t in transformed_data]
 
     with torch.no_grad():
-        predicted_comparison = rsp_model.predict(
-            (paper1, masks1, None, paper2, masks2, None)
-        )
+        predicted_comparison = rsp_model.predict(transformed_data)
 
         if predicted_comparison == 0:
             return "2"
@@ -299,7 +319,7 @@ def single_round(
 
 
 def tournament_ranking(
-    papers: list[Paper],
+    papers: list[dict],
     model: Union[PairwiseComparison, str],
     seed: int,
     conference: str,
@@ -325,6 +345,8 @@ def tournament_ranking(
     Raises:
         None
     """
+    # Create result directory
+    os.makedirs("./results", exist_ok=True)
 
     # Load client
     if config["model_type"] == "llm":
@@ -368,7 +390,7 @@ def tournament_ranking(
         total_correct_comparisons += correct_comparisons
 
         with open(
-            f"scores_{config['dataset']}_{current_round}_{config['model_type']}_{config['llm_provider']}.json",
+            f"./results/scores_{config['dataset']}_{current_round}_{config['model_type']}_{config['llm_provider']}.json",
             "w",
         ) as file:
             json.dump(scores, file, indent=4)
@@ -380,13 +402,13 @@ def tournament_ranking(
 
     # Log final scores
     with open(
-        f"final_scores_{config['dataset']}_{current_round}_{config['model_type']}_{config['llm_provider']}.json",
+        f"./results/final_scores_{config['dataset']}_{current_round}_{config['model_type']}_{config['llm_provider']}.json",
         "w",
     ) as file:
         json.dump(scores, file, indent=4)
 
     with open(
-        f"comparisons_{config['dataset']}_{current_round}_{config['model_type']}_{config['llm_provider']}.json",
+        f"./results/comparisons_{config['dataset']}_{current_round}_{config['model_type']}_{config['llm_provider']}.json",
         "w",
     ) as file:
         json.dump(
