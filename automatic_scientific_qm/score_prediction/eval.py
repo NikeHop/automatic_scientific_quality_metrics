@@ -127,13 +127,14 @@ def eval_regression(
     id2pred_score = defaultdict(float)
     abs_errors = []
     for k, data in tqdm.tqdm(enumerate(test_dataloader)):
-        data["scores"] = data["scores"].to(config["device"])
+        data = [d.to(config["device"]) for d in data]
+        _, _, scores = data
         with torch.no_grad():
             predicted_score = best_model.predict(data)
 
-        id2score[k] = data["scores"]
+        id2score[k] = scores
         id2pred_score[k] = predicted_score
-        abs_errors.append(abs(data["scores"] - predicted_score))
+        abs_errors.append(abs(scores - predicted_score))
 
     # Log Results
     if len(abs_errors) > 0:

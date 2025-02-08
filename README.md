@@ -93,7 +93,7 @@ For the citation count prediction models on the ACL-OCL dataset use/modify the c
 
 ### Score prediction OpenReview
 
-For the score prediction models on the OpenReview dataset use/modify the `openreview_score_prediction.yaml`:
+For the score prediction models on the OpenReview dataset use/modify the `openreview_score_prediction_*.yaml`:
 
 | Parameter | Values | 
 |-----------|------|

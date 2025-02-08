@@ -90,6 +90,7 @@ def collate_factory(transform_data: Callable):
         transformed_data = transform_data(
             paper_representations, references, full_papers, scores
         )
+
         return transformed_data
 
     return collate
@@ -124,9 +125,9 @@ def transform_data_factory(config):
             paper_representations (list[torch.Tensor]): A list of paper representations.
             references (list[torch.Tensor]): A list of reference embeddings.
             full_papers (list[torch.Tensor]): A list of full paper embeddings.
-
+            scores (torch.Tensor): Scores of the papers.
         Returns:
-            tuple[torch.Tensor, torch.Tensor]: A tuple containing the transformed papers and masks.
+            Union[tuple[torch.Tensor, torch.Tensor, torch.Tensor],[tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]]]: A tuple containing the transformed papers and masks.
         """
         input_lengths = []
 
@@ -184,18 +185,22 @@ def transform_data_factory(config):
     return transform_data
 
 
-def get_filter(config: dict) -> Callable:
+def get_filter(config):
     paper_representation = f"{config['data']['paper_representation']}_emb"
-    filter1 = lambda x: x[config["data"]["score_type"]] is not None
+
+    filter1 = lambda x: x[config["data"]["score_type"]]
     filter2 = (
-        lambda x: x[paper_representation] is not None and x[paper_representation].any()
+        lambda x: x[paper_representation] is not None
+        and sum(x[paper_representation]) != 0
     )
-    filter3 = lambda x: x["reference_emb"].any()
+    filter3 = lambda x: x["references_emb"] is not None and sum(x["reference_emb"]) != 0
 
     if config["data"]["context_type"] == "references":
-        return lambda x: filter1(x) and filter2(x) and filter3(x)
+        filter = lambda x: filter1(x) and filter2(x) and filter3(x)
     else:
-        return lambda x: filter1(x) and filter2(x)
+        filter = lambda x: filter1(x) and filter2(x)
+
+    return filter
 
 
 def get_data(config: dict) -> tuple[DataLoader, DataLoader, DataLoader]:
@@ -318,9 +323,11 @@ def get_data(config: dict) -> tuple[DataLoader, DataLoader, DataLoader]:
                 avg_citations_per_month = np.log(
                     sample["avg_citations_per_month"] + EPSILON
                 )
+
             else:
                 avg_citations_per_month = None
 
+            # Create a set of binary values to speed up filtering
             return {
                 "reference_emb": reference_emb,
                 "title_abstract_emb": title_abstract_emb,
@@ -339,30 +346,22 @@ def get_data(config: dict) -> tuple[DataLoader, DataLoader, DataLoader]:
         dataset = load_from_disk(dataset_directory)
 
     # Apply filters
-    paper_representation = f"{config['data']['paper_representation']}_emb"
-
     filter = get_filter(config)
     dataset = dataset.filter(filter)
-    dataset = dataset.filter(lambda x: x[config["data"]["score_type"]] is not None)
-    dataset = dataset.filter(
-        lambda x: x[paper_representation] is not None
-        and not all([elem == 0 for elem in x[paper_representation]])
-    )
 
-    if config["data"]["context_type"] == "references":
-        dataset = dataset.filter(
-            lambda x: not all([elem == 0 for elem in x["reference_emb"]])
-        )
+    # Paper representation
+    paper_representation_emb = f"{config['data']['paper_representation']}_emb"
 
     # Create dataloaders
     transform_data = transform_data_factory(config)
     collate = collate_factory(transform_data)
 
+    # Create dataloaders, loading the dataset into memory for faster training
     train_dataset = [sample for sample in dataset["train"]]
     train_dataset = ScorePredictionDataset(
         train_dataset,
         config["data"]["score_type"],
-        paper_representation,
+        paper_representation_emb,
     )
 
     train_dataloader = DataLoader(
@@ -377,7 +376,7 @@ def get_data(config: dict) -> tuple[DataLoader, DataLoader, DataLoader]:
     val_dataset = ScorePredictionDataset(
         val_dataset,
         config["data"]["score_type"],
-        paper_representation,
+        paper_representation_emb,
     )
 
     val_dataloader = DataLoader(
@@ -392,7 +391,7 @@ def get_data(config: dict) -> tuple[DataLoader, DataLoader, DataLoader]:
     test_dataset = ScorePredictionDataset(
         test_dataset,
         config["data"]["score_type"],
-        paper_representation,
+        paper_representation_emb,
     )
 
     test_dataloader = DataLoader(

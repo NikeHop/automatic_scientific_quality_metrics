@@ -2,6 +2,7 @@ data/
 logs/
 results/
 model_store/
+automatic_scientific_qm/score_prediction/scripts
 build/
 wandb/
 !automatic_scientific_qm/llm_reviewing/data/iclr_paperhashes.json

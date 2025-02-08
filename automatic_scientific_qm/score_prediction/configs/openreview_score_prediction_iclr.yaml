@@ -5,11 +5,11 @@ seed: 42
 
 
 data:
-  dataset: "acl_ocl"
-  pairwise_comparison: False
+  dataset: "openreview-iclr"
+  pairwise_comparison: True
   context_type: "no_context"
   paper_representation: "title_abstract"
-  score_type: "avg_citations_per_month"
+  score_type: "mean_score"
   batch_size: 128
   max_n_sentences_per_example: 200
   num_workers: 2

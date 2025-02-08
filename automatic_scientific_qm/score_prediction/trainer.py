@@ -1,10 +1,11 @@
 """
 PyTorch Lightning Trainer for the score prediction models.
 """
-
 import pytorch_lightning as pl
 import torch
 import torch.nn as nn
+
+from torch.nn.utils.rnn import pad_sequence
 
 from automatic_scientific_qm.score_prediction.model import ScoreModel
 
@@ -63,7 +64,7 @@ class PairwiseComparison(pl.LightningModule):
         self.save_hyperparameters()
 
     def get_loss(self, data: dict) -> tuple[torch.Tensor, torch.Tensor]:
-        papers1, masks1, papers2, masks2, scores = data
+        papers1, masks1, papers2, masks2, scores = self.transform_data(data)
         predicted_scores1 = self.score_model(papers1, masks1).squeeze(1)
         predicted_scores2 = self.score_model(papers2, masks2).squeeze(1)
         score_diff = predicted_scores1 - predicted_scores2
@@ -84,7 +85,7 @@ class PairwiseComparison(pl.LightningModule):
         return loss
 
     def predict(self, data: dict) -> torch.Tensor:
-        papers1, masks1, papers2, masks2, _ = data
+        papers1, masks1, papers2, masks2, _ = self.transform_data(data)
         predicted_scores1 = self.score_model(papers1, masks1).squeeze(1)
         predicted_scores2 = self.score_model(papers2, masks2).squeeze(1)
         return predicted_scores1 >= predicted_scores2
