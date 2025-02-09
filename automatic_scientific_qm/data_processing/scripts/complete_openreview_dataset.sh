@@ -13,7 +13,7 @@ cd ..
 if tmux has-session -t run_grobid 2>/dev/null; then
     sleep 1
 else
-    tmux new-session -d -s run_grobid "bash run_grobid.sh"
+    tmux new-session -d -s run_grobid "bash ./scripts/run_grobid.sh"
     # Wait until GORBID started
     sleep 10
 fi
