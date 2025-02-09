@@ -160,15 +160,6 @@ def complete_openreview_dataset(config: dict) -> None:
                 if len(structured_content.structured_content) > 0:
                     logging.info(f"Parsed and annotated the pdf {sample['paperhash']}.")
 
-                """
-                print(f"Intro: {introduction}")
-                print(f"Background {background}")
-                print(f"Methodology {methodology}")
-                print(f"Experiments_results: {experiments_results}")
-                print(f"conclusion {conclusion}")
-                print(f"Full text {full_text}")
-                """
-
             sample["introduction"] = introduction
             sample["background"] = background
             sample["methodology"] = methodology
