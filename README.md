@@ -4,6 +4,8 @@
 
 This repo contains the code for the paper: ["Automatic Evaluation Metrics for Artificially Generated Scientific Research"]().
 
+![Reviewer Performance](./assets/reviewer_performance.png)
+
 ## Dependencies
 
 ### Requirements for running the experiments:
