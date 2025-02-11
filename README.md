@@ -18,6 +18,7 @@ cd automatic_scientific_quality_metrics
 conda create --name scientific_qm python=3.11
 conda activate scientific_qm
 pip install -e .
+python -c "import nltk; nltk.download('punkt_tab')"
 ```
 
 All the following commands require to be run in the scientific_qm environment. Results are logged to wandb.
