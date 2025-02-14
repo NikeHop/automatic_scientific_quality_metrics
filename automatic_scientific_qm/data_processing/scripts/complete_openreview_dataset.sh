@@ -6,7 +6,7 @@ set -e
 # Download the section classifier model from Google Drive 
 mkdir -p model_store
 cd model_store
-gdown 1O99XS4kPtubcKVtofJEuZNiUZKa9s5jU
+gdown 1HWIeDzumNDZFaOT-AvKl8uqSYppdzctA
 cd ..
 
 # Start grobid if session not already exists 
