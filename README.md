@@ -161,3 +161,17 @@ The code makes use of the following repos:
 * [https://github.com/allenai/s2orc-doc2json](https://github.com/allenai/s2orc-doc2json) (Apache-2.0 license)
 * [https://github.com/SakanaAI/AI-Scientist](https://github.com/SakanaAI/AI-Scientist) (Apache-2.0 license)
 * [https://github.com/NoviScl/AI-Researcher](https://github.com/NoviScl/AI-Researcher) (MIT license)
+
+## Citation 
+
+If you make use of this codebase, please cite
+
+```
+@article{hopner2025automatic,
+  title={Automatic Evaluation Metrics for Artificially Generated Scientific Research},
+  author={H{\"o}pner, Niklas and Eshuijs, Leon and Alivanistos, Dimitrios and Zamprogno, Giacomo and Tiddi, Ilaria},
+  journal={arXiv preprint arXiv:2503.05712},
+  year={2025}
+}
+```
+
